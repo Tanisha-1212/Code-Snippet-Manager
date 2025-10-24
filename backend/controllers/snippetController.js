@@ -26,10 +26,22 @@ export const createSnippet = async(req, res) => {
     }
 };
 
+export const getAllSnippets = async(req, res) => {
+    try {
+        const userId = req.user.id;
+
+        const snippets = await Snippet.find({user: userId}).sort({createdAt : -1});
+
+        res.status(200).json(snippets);
+    } catch (error) {
+        res.status(500).json({message: error.message});
+    }
+}
+
 export const getSnippetById = async(req, res) => {
     try {
         const snippet = await Snippet.findById(req.params.id);
-        if(!snippet) return res.status(404).json({message: "Snippetnot found"});
+        if(!snippet) return res.status(404).json({message: "Snippet not found"});
 
         if(snippet.user.toString() !== req.user.id)
             return res.status(403).json({message: "Access denied"});

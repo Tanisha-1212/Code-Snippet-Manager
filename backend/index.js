@@ -7,9 +7,19 @@ app.use(cookieParser());
 
 require('dotenv').config();
 connectDB();
+app.use(express.json());
 
 app.use(cors({origin : "http://localhost:5173", credentials: true}));
-app.use(express.json());
+
+
+const authRoutes = require("./routes/authRoutes");
+const snippetRoutes = require("./routes/snippetRoutes");
+const aiRoutes = require("./routes/aiRoutes");
+
+app.use('/api/auth', authRoutes);
+app.use('/api/ai', aiRoutes);
+app.use('/api/ai', snippetRoutes);
+
 
 
 const PORT = process.env.PORT;
