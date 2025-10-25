@@ -1,10 +1,11 @@
 // routes/aiRoutes.js
-const express = require('express');
+import express from "express";;
 const router = express.Router();
-const { generateAIResult } = require('../controllers/aiController');
-const auth = require('../middleware/auth');
+import { generateSnippetAi } from '../controllers/aiController.js';
+import {auth} from "../middleware/authMiddleware.js";
 
 // Generate AI description + tags for a snippet
-router.post('/generate/:id', auth, generateAIResult);
+router.post('/generate/:id', auth, generateSnippetAi);
 
-module.exports = router;
+
+export default router; 

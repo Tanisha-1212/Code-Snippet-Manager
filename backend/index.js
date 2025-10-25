@@ -1,20 +1,20 @@
-const express = require('express');
+import express from "express";
 const app = express();
-const cors = require("cors");
-const connectDB = require("./config/db");
-const cookieParser = require("cookie-parser");
-app.use(cookieParser());
+import cors from "cors";
+import connectDB from "./config/db.js";
+import cookieParser from "cookie-parser";
 
-require('dotenv').config();
+import dotenv from "dotenv";
+dotenv.config();
 connectDB();
-app.use(express.json());
 
 app.use(cors({origin : "http://localhost:5173", credentials: true}));
+app.use(express.json());
+app.use(cookieParser());
 
-
-const authRoutes = require("./routes/authRoutes");
-const snippetRoutes = require("./routes/snippetRoutes");
-const aiRoutes = require("./routes/aiRoutes");
+import authRoutes from "./routes/authRoutes.js";
+import snippetRoutes from "./routes/snippetRoutes.js";
+import aiRoutes from "./routes/aiRoutes.js";
 
 app.use('/api/auth', authRoutes);
 app.use('/api/ai', aiRoutes);

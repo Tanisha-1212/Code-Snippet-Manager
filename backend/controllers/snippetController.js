@@ -1,5 +1,5 @@
-const Snippet = require('../models/Snippet');
-const User = require('../models/User');
+import Snippet from '../models/Snippet.js';
+import User from '../models/User.js';
 
 export const createSnippet = async(req, res) => {
     try {

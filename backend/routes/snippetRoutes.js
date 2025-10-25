@@ -1,6 +1,6 @@
-const experss = require("express");
-const router = experss.Router();
-const{
+import express from "express";
+const router = express.Router();
+import {
     createSnippet,
     getAllSnippets,
     getSnippetById,
@@ -10,9 +10,9 @@ const{
     getPublicSnippets,
     searchUserSnippet,
     searchPublicSnippets
-} = require('../controllers/snippetController');
+} from '../controllers/snippetController.js';
 
-import auth from "../middleware/authMiddleware";
+import {auth} from "../middleware/authMiddleware.js";
 
 router.post('/', auth, createSnippet);
 
@@ -32,4 +32,5 @@ router.get("/search", auth, searchUserSnippet);
 
 router.get("/search/public", searchPublicSnippets);
 
-module.exports = router;
+
+export default router; 

@@ -3,7 +3,7 @@ import User from "../models/User.js";
 import dotenv from "dotenv";
 dotenv.config();
 
-const protect = async(req, resizeBy, next) => {
+export const auth = async(req, res, next) => {
     let token = req.cookies.token; // get token from cookie
 
   if (!token) {
@@ -18,5 +18,3 @@ const protect = async(req, resizeBy, next) => {
     res.status(401).json({ message: "Not authorized, token failed" });
   }
 };
-
-export {protect};
