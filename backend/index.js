@@ -4,12 +4,14 @@ import cors from "cors";
 import connectDB from "./config/db.js";
 import cookieParser from "cookie-parser";
 
+app.use(express.json()); // for JSON requests
+app.use(express.text({ type: "*/*" })); // for raw text requests
+
 import dotenv from "dotenv";
 dotenv.config();
 connectDB();
 
 app.use(cors({origin : "http://localhost:5173", credentials: true}));
-app.use(express.json());
 app.use(cookieParser());
 
 import authRoutes from "./routes/authRoutes.js";
@@ -18,7 +20,7 @@ import aiRoutes from "./routes/aiRoutes.js";
 
 app.use('/api/auth', authRoutes);
 app.use('/api/ai', aiRoutes);
-app.use('/api/ai', snippetRoutes);
+app.use('/api/snippet', snippetRoutes);
 
 
 

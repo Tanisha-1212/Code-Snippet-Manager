@@ -1,11 +1,10 @@
-// routes/aiRoutes.js
-import express from "express";;
-const router = express.Router();
-import { generateSnippetAi } from '../controllers/aiController.js';
+import express from "express";
+import { generateSnippet } from "../controllers/aiController.js";
 import {auth} from "../middleware/authMiddleware.js";
 
-// Generate AI description + tags for a snippet
-router.post('/generate/:id', auth, generateSnippetAi);
+const router = express.Router();
 
+// POST route to send dynamic code
+router.post("/generate", auth, generateSnippet);
 
-export default router; 
+export default router;

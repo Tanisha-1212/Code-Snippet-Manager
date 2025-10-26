@@ -13,10 +13,11 @@ const snippetSchema = new mongoose.Schema({
     type: String,
     default: 'JavaScript'
   },
-  description: {
-    type: String,
-    default: ''
-  },
+  description: [
+    {
+      type : String,
+    }
+  ],
   tags: [
     {
       type: String

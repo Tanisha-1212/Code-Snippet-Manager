@@ -14,6 +14,8 @@ import {
 
 import {auth} from "../middleware/authMiddleware.js";
 
+router.get("/search", auth, searchUserSnippet);
+
 router.post('/', auth, createSnippet);
 
 router.get('/', auth, getAllSnippets);
@@ -27,8 +29,6 @@ router.delete("/:id", auth, deleteSnippet);
 router.patch("/:id/toggle", auth, togglePublicSnippet);
 
 router.get("/public/all", getPublicSnippets);
-
-router.get("/search", auth, searchUserSnippet);
 
 router.get("/search/public", searchPublicSnippets);
 

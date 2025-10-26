@@ -1,30 +1,68 @@
 import Snippet from '../models/Snippet.js';
 import User from '../models/User.js';
 
-export const createSnippet = async(req, res) => {
-    try {
-        const {title, code, language} = req.body;
+import gemini from "../config/gemini.js";
 
-        if(!title || !code){
-            return res.status(400).json({message: "Title and code are required"});
-        }
+/**
+ * Create a new snippet with AI-generated description and tags
+ */
+export const createSnippet = async (req, res) => {
+  try {
+    // --- Extract code from JSON or raw text ---
+    const code = req.body.code || req.body;
 
-        const newSnippet = await Snippet.create({
-            title, 
-            code,
-            language,
-            user: req.user.id
-        });
-
-        await User.findByIdAndUpdate(req.user.id, {
-            $push: {snippets : newSnippet._id}
-        });
-
-        res.status(201).json({message: "Snippet created successfully"});
-    } catch (error) {
-        res.status(500).json({message: error.message});
+    if (!code || (typeof code === 'object' && !code.code)) {
+      return res.status(400).json({ message: "Code is required" });
     }
+
+    // Ensure code is a string
+    let codeString = typeof code === 'string' ? code : code.code;
+
+
+    // --- Call Gemini AI ---
+    const aiResponse = await gemini(codeString);
+
+    // --- Safely parse AI response ---
+    let data = [];
+    try {
+      data = JSON.parse(aiResponse);
+      if (!Array.isArray(data) || data.length === 0) throw new Error("Empty AI response");
+    } catch (error) {
+      console.error("AI output is not valid JSON:", aiResponse);
+      return res.status(400).json({ error: "Invalid AI response format" });
+    }
+
+    // --- Extract fields safely ---
+    const { title = "", language = "", description = [], tags = [] } = data[0] || {};
+
+
+    // --- Create snippet in DB ---
+    const newSnippet = await Snippet.create({
+      title,
+      code: codeString,          // original code preserved
+      language,
+      description,
+      tags,
+      user: req.user.id,
+    });
+
+    // --- Add snippet reference to user ---
+    await User.findByIdAndUpdate(req.user.id, {
+      $push: { snippets: newSnippet._id },
+    });
+
+    res.status(201).json({
+      message: "Snippet created successfully",
+      snippet: newSnippet,
+    });
+
+  } catch (error) {
+    console.error("Error creating snippet:", error);
+    res.status(500).json({ message: error.message });
+  }
 };
+
+
 
 export const getAllSnippets = async(req, res) => {
     try {
@@ -58,7 +96,9 @@ export const updateSnippet = async(req, res) => {
         if(!snippet) return res.status(404).json({message: "Snippet not found"});
 
         if(snippet.user.toString() !== req.user.id)
-            return res.staus(500).json({message: "Access denied"});
+            return res.status(403).json({message: "Access denied"});
+
+        const { title, code, language, description, tags } = req.body;
 
         snippet.title = title || snippet.title;
         snippet.code = code || snippet.code;
@@ -72,6 +112,7 @@ export const updateSnippet = async(req, res) => {
         res.status(500).json({message: error.message});
     }
 };
+
 
 export const deleteSnippet = async(req, res) => {
     try {
@@ -134,7 +175,7 @@ export const searchUserSnippet = async(req, res) => {
             ]
         });
 
-        res.json(snippets);
+        res.json({snippets});
     } catch (error) {
         res.status(500).json({message: error.message});
     }
@@ -153,6 +194,7 @@ export const searchPublicSnippets = async(req, res) =>{
                 { tags: { $regex: query, $options: 'i' } }
             ]
         }).populate('user', 'username profilePic');
+        res.json({snippets});
     } catch (error) {
         res.status(500).json({message: error.message});
     }
