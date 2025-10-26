@@ -2,6 +2,7 @@ import { GoogleGenAI, Type } from "@google/genai";
 
 const ai = new GoogleGenAI({});
 
+
 const gemini = async function main(code) {
 
   const response = await ai.models.generateContent({
