@@ -11,7 +11,12 @@ import dotenv from "dotenv";
 dotenv.config();
 connectDB();
 
-app.use(cors());
+app.use(
+  cors({
+    origin: ["http://localhost:5173"], // frontend URL
+    credentials: true,
+  })
+);
 app.use(cookieParser());
 
 import authRoutes from "./routes/authRoutes.js";
@@ -25,5 +30,7 @@ app.get("/", (req, res) => {
   res.send("Server is running 🚀");
 });
 
-
-export default app;
+PORT = process.env.PORT;
+app.listen(prompt, ()=>{
+  console.log(`server is running on ${PORT}`)
+})
