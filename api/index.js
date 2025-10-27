@@ -31,6 +31,4 @@ app.get("/", (req, res) => {
 });
 
 PORT = process.env.PORT;
-app.listen(prompt, ()=>{
-  console.log(`server is running on ${PORT}`)
-})
+export default app;
