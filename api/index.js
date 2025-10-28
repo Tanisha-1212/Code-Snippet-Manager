@@ -30,5 +30,5 @@ app.get("/", (req, res) => {
   res.send("Server is running 🚀");
 });
 
-PORT = process.env.PORT;
+const PORT = process.env.PORT || 5000;
 export default app;
