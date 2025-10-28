@@ -11,12 +11,10 @@ import dotenv from "dotenv";
 dotenv.config();
 connectDB();
 
-app.use(
-  cors({
-    origin: ["http://localhost:5173"], // frontend URL
-    credentials: true,
-  })
-);
+app.use(cors({
+  origin: process.env.CLIENT_URL || 'http://localhost:5173',
+  credentials: true
+}));
 app.use(cookieParser());
 
 import authRoutes from "./routes/authRoutes.js";
@@ -27,8 +25,21 @@ app.use('/api/auth', authRoutes);
 app.use('/api/ai', aiRoutes);
 app.use('/api/snippet', snippetRoutes);
 app.get("/", (req, res) => {
-  res.send("Server is running 🚀");
+  res.send("Backend");
 });
 
 const PORT = process.env.PORT || 5000;
+if (process.env.NODE_ENV !== 'production') {
+  app.listen(PORT, () => {
+    console.log(`🚀 Server running on http://localhost:${PORT}`);
+  });
+}
+
+// To:
+if (require.main === module) {
+  app.listen(PORT, () => {
+    console.log(`🚀 Server running on http://localhost:${PORT}`);
+  });
+}
+
 export default app;
