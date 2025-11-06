@@ -18,7 +18,6 @@ import { useState, useEffect } from 'react';
 
 const LandingPage = () => {
   const [isVisible, setIsVisible] = useState(false);
-
   useEffect(() => {
     setIsVisible(true);
   }, []);
