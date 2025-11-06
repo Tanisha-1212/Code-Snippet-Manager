@@ -28,6 +28,32 @@ const userSchema = new mongoose.Schema({
       ref: 'Snippet'
     }
   ],
+   collections: [  
+    {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: 'Collection'
+    }
+  ],
+  favorites: [  
+    {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: 'Snippet'
+    }
+  ],
+  stats: {
+    totalSnippets: {
+      type: Number,
+      default: 0
+    },
+    publicSnippets: {
+      type: Number,
+      default: 0
+    },
+    privateSnippets: {
+      type: Number,
+      default: 0
+    }
+  }
 }, { timestamps: true });
 
 userSchema.pre("save", async function(next){

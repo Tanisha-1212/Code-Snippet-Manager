@@ -11,7 +11,8 @@ const snippetSchema = new mongoose.Schema({
   },
   language: {
     type: String,
-    default: 'JavaScript'
+    default: 'javaScript',
+    lowercase: true
   },
   description: [
     {
@@ -20,7 +21,8 @@ const snippetSchema = new mongoose.Schema({
   ],
   tags: [
     {
-      type: String
+      type: String,
+      trim: true
     }
   ],
   user: {
@@ -31,7 +33,30 @@ const snippetSchema = new mongoose.Schema({
   isPublic: {
     type: Boolean,
     default: false
-  }
+  },
+  collection: { 
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'Collection',
+    default: null
+  },
+  viewCount: {
+    type: Number,
+    default: 0
+  },
+  copyCount: {
+    type: Number,
+    default: 0
+  },
+  favoriteCount: {
+    type: Number,
+    default: 0
+  },
 }, { timestamps: true });
+
+snippetSchema.index({ title: 'text', tags: 'text' });
+snippetSchema.index({ language: 1 });
+snippetSchema.index({ isPublic: 1, createdAt: -1 });  // For explore page
+snippetSchema.index({ user: 1 });
+
 
 export default mongoose.model("Snippet", snippetSchema);

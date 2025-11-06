@@ -1,36 +1,42 @@
 import express from "express";
 const router = express.Router();
+import {protect, optionalAuth} from "../middleware/authMiddleware.js";
 import {
+    generateMetadata, 
     createSnippet,
-    getAllSnippets,
+    getPublicSnippets,
     getSnippetById,
     updateSnippet,
     deleteSnippet,
-    togglePublicSnippet,
-    getPublicSnippets,
-    searchUserSnippet,
-    searchPublicSnippets
-} from '../controllers/snippetController.js';
+    incrementViewCount,
+    incrementCopyCount,
+    toggleFavorite,
+    getUserSnippets,
+    getfavoriteSnippets
+} from "../controllers/snippetController.js";
 
-import {auth} from "../middleware/authMiddleware.js";
+router.get('/user', protect, getUserSnippets);
 
-router.get("/search", auth, searchUserSnippet);
+router.post("/generate-metadata", generateMetadata);
 
-router.post('/', auth, createSnippet);
+router.post("/", protect, createSnippet);
 
-router.get('/', auth, getAllSnippets);
+router.get("/public", getPublicSnippets);
 
-router.get('/:id', auth, getSnippetById);
+router.get('/favorites', protect, getfavoriteSnippets);
 
-router.put('/:id', auth, updateSnippet);
+router.get("/:id", optionalAuth, getSnippetById);
 
-router.delete("/:id", auth, deleteSnippet);
+router.put("/:id", protect, updateSnippet);
 
-router.patch("/:id/toggle", auth, togglePublicSnippet);
+router.delete("/:id", protect, deleteSnippet);
 
-router.get("/public/all", getPublicSnippets);
+router.post('/:id/view', incrementViewCount);
 
-router.get("/search/public", searchPublicSnippets);
+router.post('/:id/copy', incrementCopyCount);
+
+router.post('/:id/favorite', protect, toggleFavorite);
 
 
-export default router; 
+
+export default router;

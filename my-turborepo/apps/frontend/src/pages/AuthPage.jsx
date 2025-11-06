@@ -1,0 +1,455 @@
+// pages/AuthPage.jsx
+import { useState } from 'react';
+import { Link, useNavigate } from 'react-router-dom';
+import { useAuth } from '../context/AuthContext';
+import { 
+  Code2, 
+  Mail, 
+  Lock, 
+  User, 
+  Eye, 
+  EyeOff, 
+  AlertCircle,
+  Loader2,
+  CheckCircle
+} from 'lucide-react';
+
+const AuthPage = () => {
+  const [isLogin, setIsLogin] = useState(true);
+  const [formData, setFormData] = useState({
+    username: '',
+    email: '',
+    password: '',
+    confirmPassword: ''
+  });
+  const [showPassword, setShowPassword] = useState(false);
+  const [showConfirmPassword, setShowConfirmPassword] = useState(false);
+  const [error, setError] = useState('');
+  const [loading, setLoading] = useState(false);
+  const [fieldErrors, setFieldErrors] = useState({});
+
+  const { register, login } = useAuth();
+  const navigate = useNavigate();
+
+  // Switch between login and register
+  const toggleMode = () => {
+    setIsLogin(!isLogin);
+    setError('');
+    setFieldErrors({});
+    setFormData({
+      username: '',
+      email: '',
+      password: '',
+      confirmPassword: ''
+    });
+  };
+
+  // Real-time validation
+  const validateField = (name, value) => {
+    const errors = { ...fieldErrors };
+
+    switch (name) {
+      case 'username':
+        if (!isLogin) {
+          if (value.length < 3) {
+            errors.username = 'Username must be at least 3 characters';
+          } else if (value.length > 20) {
+            errors.username = 'Username must be less than 20 characters';
+          } else if (!/^[a-zA-Z0-9_]+$/.test(value)) {
+            errors.username = 'Username can only contain letters, numbers, and underscores';
+          } else {
+            delete errors.username;
+          }
+        }
+        break;
+
+      case 'email':
+        if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value)) {
+          errors.email = 'Please enter a valid email address';
+        } else {
+          delete errors.email;
+        }
+        break;
+
+      case 'password':
+        if (value.length < 6) {
+          errors.password = 'Password must be at least 6 characters';
+        } else if (value.length > 50) {
+          errors.password = 'Password must be less than 50 characters';
+        } else {
+          delete errors.password;
+        }
+        // Also validate confirm password if it exists
+        if (!isLogin && formData.confirmPassword && value !== formData.confirmPassword) {
+          errors.confirmPassword = 'Passwords do not match';
+        } else if (!isLogin && formData.confirmPassword) {
+          delete errors.confirmPassword;
+        }
+        break;
+
+      case 'confirmPassword':
+        if (!isLogin && value !== formData.password) {
+          errors.confirmPassword = 'Passwords do not match';
+        } else {
+          delete errors.confirmPassword;
+        }
+        break;
+
+      default:
+        break;
+    }
+
+    setFieldErrors(errors);
+  };
+
+  const handleChange = (e) => {
+    const { name, value } = e.target;
+    setFormData(prev => ({ ...prev, [name]: value }));
+    
+    // Validate field on change
+    if (value) {
+      validateField(name, value);
+    } else {
+      // Clear error if field is empty
+      const errors = { ...fieldErrors };
+      delete errors[name];
+      setFieldErrors(errors);
+    }
+    
+    // Clear general error when user starts typing
+    if (error) setError('');
+  };
+
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+    
+    const { username, email, password, confirmPassword } = formData;
+    
+    // Validation
+    if (isLogin) {
+      if (!email || !password) {
+        setError('Please fill in all fields');
+        return;
+      }
+    } else {
+      if (!username || !email || !password || !confirmPassword) {
+        setError('Please fill in all fields');
+        return;
+      }
+
+      if (password !== confirmPassword) {
+        setError('Passwords do not match');
+        return;
+      }
+    }
+
+    if (Object.keys(fieldErrors).length > 0) {
+      setError('Please fix all errors before submitting');
+      return;
+    }
+
+    setLoading(true);
+    setError('');
+
+    try {
+      let result;
+      
+      if (isLogin) {
+        result = await login(email, password);
+      } else {
+        result = await register(username, email, password);
+      }
+      
+      if (result.success) {
+        navigate('/');
+      } else {
+        setError(result.error || `${isLogin ? 'Login' : 'Registration'} failed. Please try again.`);
+      }
+    } catch (err) {
+      setError('An unexpected error occurred. Please try again.');
+      console.error(`${isLogin ? 'Login' : 'Registration'} error:`, err);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  return (
+    <div className="min-h-screen bg-linear-to-br from-blue-50 via-white to-purple-50 dark:from-gray-900 dark:via-gray-800 dark:to-gray-900 flex items-center justify-center py-5 px-4 sm:px-6 lg:px-8">
+      <div className="max-w-md w-full space-y-8">
+        
+        {/* Header */}
+        <div className="text-center">
+          <h2 className="text-3xl font-bold text-gray-900 dark:text-white">
+            {isLogin ? 'Welcome back' : 'Create your account'}
+          </h2>
+          <p className="mt-2 text-gray-600 dark:text-gray-400">
+            {isLogin 
+              ? 'Sign in to access your snippets' 
+              : 'Join thousands of developers organizing their code'
+            }
+          </p>
+        </div>
+
+        {/* Auth Card */}
+        <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-xl border border-gray-200 dark:border-gray-700 overflow-hidden">
+          
+          {/* Toggle Tabs */}
+          <div className="grid grid-cols-2 gap-0 p-2 bg-gray-50 dark:bg-gray-900">
+            <button
+              onClick={() => !isLogin && toggleMode()}
+              className={`py-3 rounded-lg font-semibold transition-all ${
+                isLogin
+                  ? 'bg-white dark:bg-gray-800 text-blue-600 dark:text-blue-400 shadow-sm'
+                  : 'text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-200'
+              }`}
+            >
+              Sign In
+            </button>
+            <button
+              onClick={() => isLogin && toggleMode()}
+              className={`py-3 rounded-lg font-semibold transition-all ${
+                !isLogin
+                  ? 'bg-white dark:bg-gray-800 text-blue-600 dark:text-blue-400 shadow-sm'
+                  : 'text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-200'
+              }`}
+            >
+              Sign Up
+            </button>
+          </div>
+
+          {/* Form Container */}
+          <div className="p-8">
+            
+            {/* Error Alert */}
+            {error && (
+              <div className="mb-6 p-4 rounded-lg bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 flex items-start space-x-3 animate-shake">
+                <AlertCircle className="w-5 h-5 text-red-600 dark:text-red-400 shrink-0 mt-0.5" />
+                <p className="text-sm text-red-600 dark:text-red-400">{error}</p>
+              </div>
+            )}
+
+            <form onSubmit={handleSubmit} className="space-y-5">
+              
+              {/* Username Field (Register only) */}
+              {!isLogin && (
+                <div className="animate-slide-in">
+                  <label htmlFor="username" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                    Username
+                  </label>
+                  <div className="relative">
+                    <User className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
+                    <input
+                      id="username"
+                      name="username"
+                      type="text"
+                      value={formData.username}
+                      onChange={handleChange}
+                      className={`w-full pl-10 pr-4 py-3 rounded-lg border ${
+                        fieldErrors.username 
+                          ? 'border-red-500 focus:ring-red-500' 
+                          : formData.username && !fieldErrors.username
+                          ? 'border-green-500 focus:ring-green-500'
+                          : 'border-gray-300 dark:border-gray-600 focus:ring-blue-500'
+                      } bg-white dark:bg-gray-900 text-gray-900 dark:text-white focus:ring-2 focus:border-transparent transition-all`}
+                      placeholder="johndoe"
+                      required={!isLogin}
+                    />
+                    {formData.username && !fieldErrors.username && (
+                      <CheckCircle className="absolute right-3 top-1/2 -translate-y-1/2 w-5 h-5 text-green-500" />
+                    )}
+                  </div>
+                  {fieldErrors.username && (
+                    <p className="mt-1 text-sm text-red-600 dark:text-red-400">{fieldErrors.username}</p>
+                  )}
+                </div>
+              )}
+
+              {/* Email Field */}
+              <div className={!isLogin ? 'animate-slide-in' : ''}>
+                <label htmlFor="email" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                  Email Address
+                </label>
+                <div className="relative">
+                  <Mail className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
+                  <input
+                    id="email"
+                    name="email"
+                    type="email"
+                    value={formData.email}
+                    onChange={handleChange}
+                    className={`w-full pl-10 pr-4 py-3 rounded-lg border ${
+                      fieldErrors.email 
+                        ? 'border-red-500 focus:ring-red-500' 
+                        : formData.email && !fieldErrors.email
+                        ? 'border-green-500 focus:ring-green-500'
+                        : 'border-gray-300 dark:border-gray-600 focus:ring-blue-500'
+                    } bg-white dark:bg-gray-900 text-gray-900 dark:text-white focus:ring-2 focus:border-transparent transition-all`}
+                    placeholder="john@example.com"
+                    required
+                  />
+                  {formData.email && !fieldErrors.email && (
+                    <CheckCircle className="absolute right-3 top-1/2 -translate-y-1/2 w-5 h-5 text-green-500" />
+                  )}
+                </div>
+                {fieldErrors.email && (
+                  <p className="mt-1 text-sm text-red-600 dark:text-red-400">{fieldErrors.email}</p>
+                )}
+              </div>
+
+              {/* Password Field */}
+              <div className={!isLogin ? 'animate-slide-in' : ''}>
+                <label htmlFor="password" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                  Password
+                </label>
+                <div className="relative">
+                  <Lock className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
+                  <input
+                    id="password"
+                    name="password"
+                    type={showPassword ? 'text' : 'password'}
+                    value={formData.password}
+                    onChange={handleChange}
+                    className={`w-full pl-10 pr-12 py-3 rounded-lg border ${
+                      fieldErrors.password 
+                        ? 'border-red-500 focus:ring-red-500' 
+                        : formData.password && !fieldErrors.password
+                        ? 'border-green-500 focus:ring-green-500'
+                        : 'border-gray-300 dark:border-gray-600 focus:ring-blue-500'
+                    } bg-white dark:bg-gray-900 text-gray-900 dark:text-white focus:ring-2 focus:border-transparent transition-all`}
+                    placeholder="••••••••"
+                    required
+                  />
+                  <button
+                    type="button"
+                    onClick={() => setShowPassword(!showPassword)}
+                    className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600 dark:hover:text-gray-300"
+                  >
+                    {showPassword ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}
+                  </button>
+                </div>
+                {fieldErrors.password && (
+                  <p className="mt-1 text-sm text-red-600 dark:text-red-400">{fieldErrors.password}</p>
+                )}
+                {!isLogin && !fieldErrors.password && formData.password && (
+                  <p className="mt-1 text-sm text-gray-500 dark:text-gray-400">
+                    Password strength: {formData.password.length >= 8 ? 'Strong' : 'Moderate'}
+                  </p>
+                )}
+              </div>
+
+              {/* Confirm Password Field (Register only) */}
+              {!isLogin && (
+                <div className="animate-slide-in">
+                  <label htmlFor="confirmPassword" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                    Confirm Password
+                  </label>
+                  <div className="relative">
+                    <Lock className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
+                    <input
+                      id="confirmPassword"
+                      name="confirmPassword"
+                      type={showConfirmPassword ? 'text' : 'password'}
+                      value={formData.confirmPassword}
+                      onChange={handleChange}
+                      className={`w-full pl-10 pr-12 py-3 rounded-lg border ${
+                        fieldErrors.confirmPassword 
+                          ? 'border-red-500 focus:ring-red-500' 
+                          : formData.confirmPassword && !fieldErrors.confirmPassword
+                          ? 'border-green-500 focus:ring-green-500'
+                          : 'border-gray-300 dark:border-gray-600 focus:ring-blue-500'
+                      } bg-white dark:bg-gray-900 text-gray-900 dark:text-white focus:ring-2 focus:border-transparent transition-all`}
+                      placeholder="••••••••"
+                      required={!isLogin}
+                    />
+                    <button
+                      type="button"
+                      onClick={() => setShowConfirmPassword(!showConfirmPassword)}
+                      className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600 dark:hover:text-gray-300"
+                    >
+                      {showConfirmPassword ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}
+                    </button>
+                  </div>
+                  {fieldErrors.confirmPassword && (
+                    <p className="mt-1 text-sm text-red-600 dark:text-red-400">{fieldErrors.confirmPassword}</p>
+                  )}
+                </div>
+              )}
+
+              {/* Forgot Password (Login only) */}
+              {isLogin && (
+                <div className="flex items-center justify-end">
+                  <Link
+                    to="/forgot-password"
+                    className="text-sm text-blue-600 dark:text-blue-400 hover:underline"
+                  >
+                    Forgot password?
+                  </Link>
+                </div>
+              )}
+
+              {/* Submit Button */}
+              <button
+                type="submit"
+                disabled={loading || Object.keys(fieldErrors).length > 0}
+                className="w-full flex items-center justify-center px-6 py-3 rounded-lg bg-blue-600 hover:bg-blue-700 disabled:bg-gray-400 disabled:cursor-not-allowed text-white font-semibold transition-colors shadow-lg hover:shadow-xl"
+              >
+                {loading ? (
+                  <>
+                    <Loader2 className="w-5 h-5 mr-2 animate-spin" />
+                    {isLogin ? 'Signing in...' : 'Creating account...'}
+                  </>
+                ) : (
+                  isLogin ? 'Sign In' : 'Create Account'
+                )}
+              </button>
+            </form>
+          </div>
+        </div>
+
+        {/* Terms (Register only) */}
+        {!isLogin && (
+          <p className="text-center text-sm text-gray-600 dark:text-gray-400">
+            By signing up, you agree to our{' '}
+            <Link to="/terms" className="text-blue-600 dark:text-blue-400 hover:underline">
+              Terms of Service
+            </Link>{' '}
+            and{' '}
+            <Link to="/privacy" className="text-blue-600 dark:text-blue-400 hover:underline">
+              Privacy Policy
+            </Link>
+          </p>
+        )}
+      </div>
+
+      {/* Animations */}
+      <style>{`
+        @keyframes slide-in {
+          from {
+            opacity: 0;
+            transform: translateY(-10px);
+          }
+          to {
+            opacity: 1;
+            transform: translateY(0);
+          }
+        }
+        
+        @keyframes shake {
+          0%, 100% { transform: translateX(0); }
+          10%, 30%, 50%, 70%, 90% { transform: translateX(-5px); }
+          20%, 40%, 60%, 80% { transform: translateX(5px); }
+        }
+        
+        .animate-slide-in {
+          animation: slide-in 0.3s ease-out;
+        }
+        
+        .animate-shake {
+          animation: shake 0.5s ease-in-out;
+        }
+      `}</style>
+    </div>
+  );
+};
+
+export default AuthPage;

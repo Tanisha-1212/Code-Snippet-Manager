@@ -1,8 +1,5 @@
 import gemini from "../config/gemini.js";
 
-/**
- * Controller to generate code snippet description and tags using Gemini
- */
 export const generateSnippet = async (req, res) => {
   try {
     const { code } = req.body;

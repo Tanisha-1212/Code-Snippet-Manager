@@ -1,16 +1,28 @@
 import express from "express";
-import { registerUser, loginUser, getProfile, logoutUser } from "../controllers/userController.js";
 const router = express.Router();
-import {auth} from "../middleware/authMiddleware.js";
+import {register, login, logout, getMe, updateProfile, deleteAccount, changePassword} from "../controllers/authController.js";
+import {protect} from "../middleware/authMiddleware.js";
+import upload, { handleMulterError } from '../middleware/upload.js';
 
-router.post('/register', registerUser);
+router.post("/register", register);
 
-router.post('/login', loginUser);
+router.post("/login", login);
 
-router.post('/logout', auth,  logoutUser);
+router.post("/logout", protect, logout);
 
-router.get('/profile', auth, getProfile);
+router.get("/me", protect, getMe);
+
+router.put(
+  '/profile', 
+  protect, 
+  upload.single('profilePic'), 
+  handleMulterError,  // Add this error handler
+  updateProfile
+); // ← Added upload.single()
+
+router.put('/change-password', protect, changePassword);
+
+router.delete('/account', protect, deleteAccount);
 
 
-export default router; 
-
+export default router;
