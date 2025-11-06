@@ -10,28 +10,31 @@ connectDB();
 
 app.use(cookieParser());
 
-// CORS must come early
+// CORS configuration
 app.use(cors({
-  origin: ['http://localhost:5173', 'https://code-snippet-manager-inky.vercel.app'],
+  origin: [
+    'http://localhost:5173',
+    'http://localhost:5174',
+    'https://code-snippet-manager-inky.vercel.app',
+  ],
   credentials: true,
+  methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'OPTIONS'],
+  allowedHeaders: ['Content-Type', 'Authorization', 'Cookie'],
+  exposedHeaders: ['Set-Cookie'],
 }));
 
-// CRITICAL FIX: Body parsers should NOT process multipart/form-data
+// Body parsers
 app.use((req, res, next) => {
-  // Skip body parsing for multipart requests - let multer handle them
   if (req.is('multipart/form-data')) {
     return next();
   }
   
-  // Only parse JSON and urlencoded for non-multipart requests
   express.json()(req, res, () => {
     express.urlencoded({ extended: true })(req, res, next);
   });
 });
 
-// Remove this line - it breaks multipart parsing
-// app.use(express.text({ type: "*/*" })); 
-
+// Routes
 import authRoutes from "./routes/authRoutes.js";
 import snippetRoutes from "./routes/snippetRoutes.js";
 import collectionRoutes from "./routes/collectionRoutes.js";
@@ -51,13 +54,12 @@ app.get("/", (req, res) => {
 });
 
 const PORT = process.env.PORT || 5000;
-if (process.env.NODE_ENV !== 'production') {
+
+// Start server (skipped in serverless environments like Vercel)
+if (process.env.VERCEL !== '1') {
   app.listen(PORT, () => {
     console.log(`🚀 Server running on http://localhost:${PORT}`);
   });
 }
 
-app.listen(PORT, () => {
-  console.log("Server running!");
-})
 export default app;

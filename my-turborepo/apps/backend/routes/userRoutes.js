@@ -15,4 +15,4 @@ router.get('/:userId', getUserProfile);                  // GET /api/users/:user
 router.get('/:userId/snippets', getUserPublicSnippets);  // GET /api/users/:userId/snippets
 router.get('/:userId/stats', getUserStats);              // GET /api/users/:userId/stats (can be accessed by anyone, shows different data for owner)
 
-export default router;
+export default router
