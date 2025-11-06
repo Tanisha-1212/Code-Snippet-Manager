@@ -22,7 +22,7 @@ export const CollectionProvider = ({ children }) => {
     setLoading(true);
     setError(null);
     try {
-      const { data } = await axiosInstance.get('collections');
+      const { data } = await axiosInstance.get('/api/collections');
       setCollections(data);
       return { success: true, data };
     } catch (err) {
@@ -40,7 +40,7 @@ export const CollectionProvider = ({ children }) => {
     setLoading(true);
     setError(null);
     try {
-      const { data } = await axiosInstance.get(`collections/${collectionId}`);
+      const { data } = await axiosInstance.get(`/api/collections/${collectionId}`);
       setCurrentCollection(data);
       return { success: true, data };
     } catch (err) {
@@ -58,7 +58,7 @@ export const CollectionProvider = ({ children }) => {
     setLoading(true);
     setError(null);
     try {
-      const { data } = await axiosInstance.post('collections', collectionData);
+      const { data } = await axiosInstance.post('/api/collections', collectionData);
       setCollections(prev => [data, ...prev]);
       return { success: true, data };
     } catch (err) {
@@ -76,7 +76,7 @@ export const CollectionProvider = ({ children }) => {
     setLoading(true);
     setError(null);
     try {
-      const { data } = await axiosInstance.put(`collections/${collectionId}`, collectionData);
+      const { data } = await axiosInstance.put(`/api/collections/${collectionId}`, collectionData);
       
       // Update in collections list
       setCollections(prev => prev.map(collection => 
@@ -104,7 +104,7 @@ export const CollectionProvider = ({ children }) => {
     setLoading(true);
     setError(null);
     try {
-      await axiosInstance.delete(`collections/${collectionId}`);
+      await axiosInstance.delete(`/api/collections/${collectionId}`);
       
       // Remove from collections list
       setCollections(prev => prev.filter(c => c._id !== collectionId));

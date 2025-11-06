@@ -30,7 +30,7 @@ export const SnippetProvider = ({ children }) => {
     setLoading(true);
     setError(null);
     try {
-      const { data } = await axiosInstance.post('snippet/generate-metadata', { code });
+      const { data } = await axiosInstance.post('/api/snippet/generate-metadata', { code });
       return { success: true, data };
     } catch (err) {
       const message = err.response?.data?.message || 'Failed to generate metadata';
@@ -47,7 +47,7 @@ export const SnippetProvider = ({ children }) => {
     setLoading(true);
     setError(null);
     try {
-      const { data } = await axiosInstance.post('snippet', snippetData);
+      const { data } = await axiosInstance.post('/api/snippet', snippetData);
       setUserSnippets(prev => [data, ...prev]);
       return { success: true, data };
     } catch (err) {
@@ -65,7 +65,7 @@ export const SnippetProvider = ({ children }) => {
     setLoading(true);
     setError(null);
     try {
-      const { data } = await axiosInstance.get('snippet/public', {
+      const { data } = await axiosInstance.get('/api/snippet/public', {
         params: { page, limit }
       });
       setPublicSnippets(data.snippets || []);
@@ -90,7 +90,7 @@ export const SnippetProvider = ({ children }) => {
     setLoading(true);
     setError(null);
     try {
-      const { data } = await axiosInstance.get(`snippet/${id}`);
+      const { data } = await axiosInstance.get(`/api/snippet/${id}`);
       setCurrentSnippet(data);
       return { success: true, data };
     } catch (err) {
@@ -108,7 +108,7 @@ export const SnippetProvider = ({ children }) => {
     setLoading(true);
     setError(null);
     try {
-      const { data } = await axiosInstance.put(`snippet/${id}`, snippetData);
+      const { data } = await axiosInstance.put(`/api/snippet/${id}`, snippetData);
       
       // Update in userSnippets if exists
       setUserSnippets(prev => 
@@ -136,7 +136,7 @@ export const SnippetProvider = ({ children }) => {
     setLoading(true);
     setError(null);
     try {
-      await axiosInstance.delete(`snippet/${id}`);
+      await axiosInstance.delete(`/api/snippet/${id}`);
       
       // Remove from userSnippets
       setUserSnippets(prev => prev.filter(snippet => snippet._id !== id));
@@ -173,7 +173,7 @@ export const SnippetProvider = ({ children }) => {
       if (filters.language) params.append('language', filters.language);
       if (filters.collection) params.append('collection', filters.collection);
 
-      const { data } = await axiosInstance.get(`snippet/user?${params.toString()}`);
+      const { data } = await axiosInstance.get(`/api/snippet/user?${params.toString()}`);
       setUserSnippets(data.snippets || []);
       return { success: true, data };
     } catch (err) {
@@ -189,7 +189,7 @@ export const SnippetProvider = ({ children }) => {
   // Track view
   const trackView = async (snippetId) => {
     try {
-      await axiosInstance.post(`snippet/${snippetId}/view`);
+      await axiosInstance.post(`/api/snippet/${snippetId}/view`);
     } catch (err) {
       console.error('Error tracking view:', err);
     }
@@ -198,7 +198,7 @@ export const SnippetProvider = ({ children }) => {
   // Track copy
   const trackCopy = async (snippetId) => {
     try {
-      await axiosInstance.post(`snippet/${snippetId}/copy`);
+      await axiosInstance.post(`/api/snippet/${snippetId}/copy`);
     } catch (err) {
       console.error('Error tracking copy:', err);
     }
@@ -209,7 +209,7 @@ export const SnippetProvider = ({ children }) => {
     setLoading(true);
     setError(null);
     try {
-      const { data } = await axiosInstance.post(`snippet/${snippetId}/favorite`);
+      const { data } = await axiosInstance.post(`/api/snippet/${snippetId}/favorite`);
       return { success: true, data };
     } catch (err) {
       const message = err.response?.data?.message || 'Failed to toggle favorite';
@@ -225,7 +225,7 @@ export const SnippetProvider = ({ children }) => {
   setLoading(true);
   setError(null);
   try {
-    const { data } = await axiosInstance.get('snippet/favorites');
+    const { data } = await axiosInstance.get('/api/snippet/favorites');
     setFavoriteSnippets(data.favorites || []);
     return { success: true, data };
   } catch (err) {

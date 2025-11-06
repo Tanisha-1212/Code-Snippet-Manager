@@ -38,7 +38,7 @@ export const ExploreProvider = ({ children }) => {
       if (filters.page) params.append('page', filters.page);
       if (filters.limit) params.append('limit', filters.limit);
 
-      const { data } = await axiosInstance.get(`/explore/search?${params.toString()}`);
+      const { data } = await axiosInstance.get(`/api/explore/search?${params.toString()}`);
       
       setSnippets(data.snippets);
       setPagination({
@@ -63,7 +63,7 @@ export const ExploreProvider = ({ children }) => {
     setLoading(true);
     setError(null);
     try {
-      const { data } = await axiosInstance.get(`/explore/trending?limit=${limit}`);
+      const { data } = await axiosInstance.get(`/api/explore/trending?limit=${limit}`);
       setTrendingSnippets(data);
       return { success: true, data };
     } catch (err) {
@@ -80,7 +80,7 @@ export const ExploreProvider = ({ children }) => {
   const getLanguages = async () => {
     setError(null);
     try {
-      const { data } = await axiosInstance.get('/explore/languages');
+      const { data } = await axiosInstance.get('/api/explore/languages');
       setLanguages(data);
       return { success: true, data };
     } catch (err) {
@@ -95,7 +95,7 @@ export const ExploreProvider = ({ children }) => {
   const getPopularTags = async (limit = 20) => {
     setError(null);
     try {
-      const { data } = await axiosInstance.get(`/explore/tags?limit=${limit}`);
+      const { data } = await axiosInstance.get(`/api/explore/tags?limit=${limit}`);
       setPopularTags(data);
       return { success: true, data };
     } catch (err) {

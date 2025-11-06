@@ -21,7 +21,7 @@ export const CommentProvider = ({ children }) => {
     setLoading(true);
     setError(null);
     try {
-      const { data } = await axiosInstance.get(`/comments/snippet/${snippetId}`);
+      const { data } = await axiosInstance.get(`/api/comments/snippet/${snippetId}`);
       setComments(data);
       return { success: true, data };
     } catch (err) {
@@ -39,7 +39,7 @@ export const CommentProvider = ({ children }) => {
     setLoading(true);
     setError(null);
     try {
-      const { data } = await axiosInstance.post('/comments', commentData);
+      const { data } = await axiosInstance.post('/api/comments', commentData);
       
       // If it's a top-level comment, add to comments array
       if (!commentData.parentComment) {
@@ -73,7 +73,7 @@ export const CommentProvider = ({ children }) => {
     setLoading(true);
     setError(null);
     try {
-      const { data } = await axiosInstance.put(`/comments/${commentId}`, { content });
+      const { data } = await axiosInstance.put(`/api/comments/${commentId}`, { content });
       
       // Update in state
       setComments(prev => prev.map(comment => {
@@ -108,7 +108,7 @@ export const CommentProvider = ({ children }) => {
     setLoading(true);
     setError(null);
     try {
-      await axiosInstance.delete(`/comments/${commentId}`);
+      await axiosInstance.delete(`/api/comments/${commentId}`);
 
       // Remove from state
       if (!parentCommentId) {
@@ -142,7 +142,7 @@ export const CommentProvider = ({ children }) => {
   const toggleLike = async (commentId, isReply = false, parentCommentId = null) => {
     setError(null);
     try {
-      const { data } = await axiosInstance.post(`/comments/${commentId}/like`);
+      const { data } = await axiosInstance.post(`/api/comments/${commentId}/like`);
       
       // Update in state
       setComments(prev => prev.map(comment => {

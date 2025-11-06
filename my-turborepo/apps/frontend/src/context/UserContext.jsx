@@ -23,7 +23,7 @@ export const UserProvider = ({ children }) => {
     setLoading(true);
     setError(null);
     try {
-      const response = await fetch(`users/${userId}`, {
+      const response = await fetch(`/api/users/${userId}`, {
         credentials: 'include'
       });
 
@@ -51,7 +51,7 @@ export const UserProvider = ({ children }) => {
     setError(null);
     try {
       const response = await fetch(
-        `users/${userId}/snippets?page=${page}&limit=${limit}`,
+        `/api/users/${userId}/snippets?page=${page}&limit=${limit}`,
         {
           credentials: 'include'
         }
@@ -78,7 +78,7 @@ export const UserProvider = ({ children }) => {
     setLoading(true);
     setError(null);
     try {
-      const response = await fetch(`users/${userId}/stats`, {
+      const response = await fetch(`/api/users/${userId}/stats`, {
         credentials: 'include'
       });
 
@@ -103,7 +103,7 @@ export const UserProvider = ({ children }) => {
     setLoading(true);
     setError(null);
     try {
-      const response = await fetch(`users/search?q=${encodeURIComponent(query)}`, {
+      const response = await fetch(`/api/users/search?q=${encodeURIComponent(query)}`, {
         credentials: 'include'
       });
 

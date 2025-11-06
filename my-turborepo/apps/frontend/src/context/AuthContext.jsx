@@ -24,7 +24,7 @@ export const AuthProvider = ({ children }) => {
 
   const checkAuth = async () => {
     try {
-      const { data } = await axiosInstance.get("auth/me");
+      const { data } = await axiosInstance.get("/api/auth/me");
       
       if (data && data._id) {
         setUser(data);
@@ -44,7 +44,7 @@ export const AuthProvider = ({ children }) => {
 
   const register = async (username, email, password) => {
     try {
-      const { data } = await axiosInstance.post("auth/register", {
+      const { data } = await axiosInstance.post("/api/auth/register", {
         username,
         email,
         password,
@@ -65,7 +65,7 @@ export const AuthProvider = ({ children }) => {
 
   const login = async (email, password) => {
     try {
-      const { data } = await axiosInstance.post("auth/login", {
+      const { data } = await axiosInstance.post("/api/auth/login", {
         email,
         password,
       });
@@ -85,7 +85,7 @@ export const AuthProvider = ({ children }) => {
 
   const logout = async () => {
     try {
-      await axiosInstance.post("auth/logout");
+      await axiosInstance.post("/api/auth/logout");
     } catch (error) {
       console.error("Logout error:", error);
     } finally {
@@ -120,7 +120,7 @@ export const AuthProvider = ({ children }) => {
     }
     console.log('========================');
 
-    const { data } = await axiosInstance.put('auth/profile', formData, {
+    const { data } = await axiosInstance.put('/api/auth/profile', formData, {
       headers: {
         // Remove Content-Type header - let axios/browser set it with proper boundary
         // 'Content-Type': 'multipart/form-data'
@@ -149,7 +149,7 @@ const changePassword = async (currentPassword, newPassword, confirmPassword) => 
   setLoading(true);
   setError(null);
   try {
-    const { data } = await axiosInstance.put('auth/change-password', {
+    const { data } = await axiosInstance.put('/api/auth/change-password', {
       currentPassword,
       newPassword,
       confirmPassword
@@ -175,7 +175,7 @@ const deleteAccount = async (password, confirmation) => {
   setLoading(true);
   setError(null);
   try {
-    const { data } = await axiosInstance.delete('auth/account', {
+    const { data } = await axiosInstance.delete('/api/auth/account', {
       data: { password, confirmation }
     });
 
