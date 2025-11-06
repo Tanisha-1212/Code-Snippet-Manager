@@ -8,7 +8,6 @@ import {
 } from '../controllers/userController.js';
 
 const router = express.Router();
-
 // Public routes
 router.get('/search', searchUsers);                      // GET /api/users/search?q=username
 router.get('/:userId', getUserProfile);                  // GET /api/users/:userId
