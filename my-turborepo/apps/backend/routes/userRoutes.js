@@ -5,7 +5,7 @@ import {
   getUserPublicSnippets,
   searchUsers,
   getUserStats
-} from '../controllers/UserController.js';
+} from '../controllers/userController.js';
 
 const router = express.Router();
 
