@@ -1,4 +1,3 @@
-// pages/AuthPage.jsx
 import { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
@@ -30,6 +29,66 @@ const AuthPage = () => {
 
   const { register, login } = useAuth();
   const navigate = useNavigate();
+
+  // Sanitize error messages - convert backend errors to user-friendly messages
+  const sanitizeError = (backendError) => {
+    // Log the actual error to console for debugging
+    console.error('Backend error:', backendError);
+
+    // Map common backend errors to user-friendly messages
+    const errorMessage = backendError?.toLowerCase() || '';
+
+    // Authentication errors
+    if (errorMessage.includes('invalid') || errorMessage.includes('incorrect')) {
+      return isLogin 
+        ? 'Invalid email or password. Please try again.' 
+        : 'Invalid information provided. Please check your details.';
+    }
+
+    if (errorMessage.includes('not found') || errorMessage.includes('does not exist')) {
+      return 'No account found with this email address.';
+    }
+
+    if (errorMessage.includes('already exists') || errorMessage.includes('duplicate')) {
+      return 'An account with this email already exists. Please sign in instead.';
+    }
+
+    if (errorMessage.includes('username') && errorMessage.includes('taken')) {
+      return 'This username is already taken. Please choose another.';
+    }
+
+    // Network/Server errors
+    if (errorMessage.includes('network') || errorMessage.includes('failed to fetch')) {
+      return 'Network error. Please check your internet connection and try again.';
+    }
+
+    if (errorMessage.includes('timeout')) {
+      return 'Request timed out. Please try again.';
+    }
+
+    if (errorMessage.includes('500') || errorMessage.includes('server error')) {
+      return 'Our servers are experiencing issues. Please try again in a moment.';
+    }
+
+    // Validation errors
+    if (errorMessage.includes('validation') || errorMessage.includes('invalid format')) {
+      return 'Please check your information and try again.';
+    }
+
+    if (errorMessage.includes('required')) {
+      return 'Please fill in all required fields.';
+    }
+
+    // Token/Session errors
+    if (errorMessage.includes('token') || errorMessage.includes('expired') || errorMessage.includes('unauthorized')) {
+      return 'Your session has expired. Please try logging in again.';
+    }
+
+    // Generic fallback messages (don't expose internal details)
+    return isLogin 
+      ? 'Unable to sign in. Please check your credentials and try again.'
+      : 'Unable to create account. Please check your information and try again.';
+  };
 
   // Switch between login and register
   const toggleMode = () => {
@@ -163,18 +222,24 @@ const AuthPage = () => {
       if (result.success) {
         navigate('/');
       } else {
-        setError(result.error || `${isLogin ? 'Login' : 'Registration'} failed. Please try again.`);
+        // Sanitize the error before showing to user
+        const userFriendlyError = sanitizeError(result.error);
+        setError(userFriendlyError);
       }
     } catch (err) {
-      setError('An unexpected error occurred. Please try again.');
+      // Log the raw error for debugging
       console.error(`${isLogin ? 'Login' : 'Registration'} error:`, err);
+      
+      // Show sanitized error to user
+      const userFriendlyError = sanitizeError(err.message || err.toString());
+      setError(userFriendlyError);
     } finally {
       setLoading(false);
     }
   };
 
   return (
-    <div className="min-h-screen bg-linear-to-br from-blue-50 via-white to-purple-50 dark:from-gray-900 dark:via-gray-800 dark:to-gray-900 flex items-center justify-center py-5 px-4 sm:px-6 lg:px-8">
+    <div className="min-h-screen bg-linear-to-br from-blue-50 via-white to-purple-50 dark:from-gray-900 dark:via-gray-800 dark:to-gray-900 flex items-center justify-center py-12 px-4 sm:px-6 lg:px-8">
       <div className="max-w-md w-full space-y-8">
         
         {/* Header */}
@@ -184,8 +249,8 @@ const AuthPage = () => {
           </h2>
           <p className="mt-2 text-gray-600 dark:text-gray-400">
             {isLogin 
-              ? 'Sign in to access your snippets' 
-              : 'Join thousands of developers organizing their code'
+              ? 'Sign in to access your study sets' 
+              : 'Join thousands of students learning smarter'
             }
           </p>
         </div>
