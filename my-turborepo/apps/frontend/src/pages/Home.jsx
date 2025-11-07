@@ -240,7 +240,7 @@ const Dashboard = () => {
               {user.collections.slice(0, 4).map((collection) => (
                 <Link
                   key={collection._id}
-                  to={`/collection/${collection._id}`}
+                  to={`/collections/${collection._id}`}
                   className="group bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 p-6 hover:shadow-md transition-all hover:border-purple-500 dark:hover:border-purple-400"
                 >
                   <div className="flex items-center space-x-3 mb-3">
