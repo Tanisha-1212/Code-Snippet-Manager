@@ -1,12 +1,14 @@
 // controllers/commentController.js
 import Comment from '../models/Comment.js';
 import Snippet from '../models/Snippet.js';
+import connectDB from '../config/db.js';
 
 // @desc    Create comment
 // @route   POST /api/comments
 // @access  Private
 export const createComment = async (req, res) => {
   try {
+    await connectDB();
     const { snippet, content, lineNumber, parentComment } = req.body;
 
     if (!snippet || !content) {
@@ -48,6 +50,7 @@ export const createComment = async (req, res) => {
 // @access  Public
 export const getCommentsBySnippet = async (req, res) => {
   try {
+    await connectDB();
     const comments = await Comment.find({ 
       snippet: req.params.snippetId,
       parentComment: null // Only top-level comments
@@ -70,6 +73,7 @@ export const getCommentsBySnippet = async (req, res) => {
 // @access  Private
 export const updateComment = async (req, res) => {
   try {
+    await connectDB();
     const comment = await Comment.findById(req.params.id);
 
     if (!comment) {
@@ -98,6 +102,7 @@ export const updateComment = async (req, res) => {
 // @access  Private
 export const deleteComment = async (req, res) => {
   try {
+    await connectDB();
     const comment = await Comment.findById(req.params.id);
 
     if (!comment) {
@@ -132,6 +137,7 @@ export const deleteComment = async (req, res) => {
 // @access  Private
 export const toggleLike = async (req, res) => {
   try {
+    await connectDB();
     const comment = await Comment.findById(req.params.id);
 
     if (!comment) {

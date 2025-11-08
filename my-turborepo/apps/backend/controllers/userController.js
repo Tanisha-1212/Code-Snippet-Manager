@@ -1,12 +1,15 @@
 // controllers/userController.js
 import User from '../models/User.js';
 import Snippet from '../models/Snippet.js';
+import connectDB from '../config/db.js';
+
 
 // @desc    Get user profile by ID (public profile)
 // @route   GET /api/users/:userId
 // @access  Public
 export const getUserProfile = async (req, res) => {
   try {
+    await connectDB();
     const { userId } = req.params;
 
     const user = await User.findById(userId)
@@ -52,6 +55,7 @@ export const getUserProfile = async (req, res) => {
 // @access  Public
 export const getUserPublicSnippets = async (req, res) => {
   try {
+    await connectDB();
     const { userId } = req.params;
     const page = parseInt(req.query.page) || 1;
     const limit = parseInt(req.query.limit) || 20;
@@ -96,6 +100,7 @@ export const getUserPublicSnippets = async (req, res) => {
 // @access  Public
 export const searchUsers = async (req, res) => {
   try {
+    await connectDB();
     const { q } = req.query;
 
     if (!q || q.trim().length === 0) {
@@ -123,6 +128,7 @@ export const searchUsers = async (req, res) => {
 // @access  Public
 export const getUserStats = async (req, res) => {
   try {
+    await connectDB();
     const { userId } = req.params;
     const isOwnProfile = req.user && req.user._id.toString() === userId;
 

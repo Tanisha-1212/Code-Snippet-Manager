@@ -1,5 +1,6 @@
 import User from '../models/User.js';
 import jwt from 'jsonwebtoken';
+import connectDB from '../config/db.js';
 
 // Generate JWT Token
 const generateToken = (id) => {
@@ -24,6 +25,7 @@ const setTokenCookie = (res, token) => {
 // @access  Public
 export const register = async (req, res) => {
   try {
+    await connectDB();
     const { username, email, password } = req.body;
 
     // Validation
@@ -77,6 +79,7 @@ export const register = async (req, res) => {
 // @access  Public
 export const login = async (req, res) => {
   try {
+    await connectDB();
     const { email, password } = req.body;
 
     // Validation
@@ -117,6 +120,7 @@ export const login = async (req, res) => {
 // @access  Private
 export const logout = async (req, res) => {
   try {
+    await connectDB();
     res.cookie('token', '', {
       httpOnly: true,
       secure: process.env.NODE_ENV === 'production',
@@ -135,6 +139,7 @@ export const logout = async (req, res) => {
 // @access  Private
 export const getMe = async (req, res) => {
   try {
+    await connectDB();
     const user = await User.findById(req.user._id)
       .select('-password')
       .populate('snippets', 'title language tags createdAt')
@@ -153,6 +158,7 @@ export const getMe = async (req, res) => {
 // @access  Private
 export const updateProfile = async (req, res) => {
   try {
+    await connectDB();
     const userId = req.user._id;
     const { username, email, bio } = req.body;
 
@@ -231,6 +237,7 @@ export const updateProfile = async (req, res) => {
 // @access  Private
 export const changePassword = async (req, res) => {
   try {
+    await connectDB();
     const userId = req.user._id;
     const { currentPassword, newPassword, confirmPassword } = req.body;
 
@@ -285,6 +292,7 @@ export const changePassword = async (req, res) => {
 // @access  Private
 export const deleteAccount = async (req, res) => {
   try {
+    await connectDB();
     const userId = req.user._id;
     const { password, confirmation } = req.body;
 
@@ -338,6 +346,7 @@ export const deleteAccount = async (req, res) => {
 
 export const getUserProfile = async (req, res) => {
   try {
+    await connectDB();
     const user = await User.findById(req.params.userId)
       .select('-password -email') // Hide sensitive data
       .populate('snippets', 'title language tags createdAt isPublic')

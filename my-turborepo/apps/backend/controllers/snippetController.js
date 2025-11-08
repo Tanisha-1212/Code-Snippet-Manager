@@ -3,12 +3,14 @@ import Snippet from '../models/Snippet.js';
 import User from '../models/User.js';
 import Collection from '../models/Collection.js';
 import gemini from '../config/gemini.js';
+import connectDB from '../config/db.js';
 
 // @desc    Generate snippet metadata using Gemini
 // @route   POST /api/snippets/generate-metadata
 // @access  Private
 export const generateMetadata = async (req, res) => {
   try {
+    await connectDB();
     const { code } = req.body;
 
     if (!code) {
@@ -36,6 +38,7 @@ export const generateMetadata = async (req, res) => {
 // @access  Private
 export const createSnippet = async (req, res) => {
   try {
+    await connectDB();
     const { title, code, language, description, tags, isPublic, collection } = req.body;
 
     if (!title || !code) {
@@ -84,6 +87,7 @@ export const createSnippet = async (req, res) => {
 // @access  Public
 export const getPublicSnippets = async (req, res) => {
   try {
+    await connectDB();
     const page = parseInt(req.query.page) || 1;
     const limit = parseInt(req.query.limit) || 20;
     const skip = (page - 1) * limit;
@@ -113,6 +117,7 @@ export const getPublicSnippets = async (req, res) => {
 // @access  Public (but owner can see private)
 export const getSnippetById = async (req, res) => {
   try {
+    await connectDB();
     const snippet = await Snippet.findById(req.params.id)
       .populate('user', 'username profilePic')
       .populate('collection', 'name color');
@@ -143,6 +148,7 @@ export const getSnippetById = async (req, res) => {
 // @access  Private
 export const updateSnippet = async (req, res) => {
   try {
+    await connectDB();
     const snippet = await Snippet.findById(req.params.id);
 
     if (!snippet) {
@@ -227,6 +233,7 @@ export const updateSnippet = async (req, res) => {
 // @access  Private
 export const deleteSnippet = async (req, res) => {
   try {
+    await connectDB();
     const snippet = await Snippet.findById(req.params.id);
 
     if (!snippet) {
@@ -269,6 +276,7 @@ export const deleteSnippet = async (req, res) => {
 // @access  Public
 export const incrementViewCount = async (req, res) => {
   try {
+    await connectDB();
     const snippet = await Snippet.findByIdAndUpdate(
       req.params.id,
       { $inc: { viewCount: 1 } },
@@ -290,6 +298,7 @@ export const incrementViewCount = async (req, res) => {
 // @access  Public
 export const incrementCopyCount = async (req, res) => {
   try {
+    await connectDB();
     const snippet = await Snippet.findByIdAndUpdate(
       req.params.id,
       { $inc: { copyCount: 1 } },
@@ -311,6 +320,7 @@ export const incrementCopyCount = async (req, res) => {
 // @access  Private
 export const toggleFavorite = async (req, res) => {
   try {
+    await connectDB();
     const snippet = await Snippet.findById(req.params.id);
     
     if (!snippet) {
@@ -350,6 +360,7 @@ export const toggleFavorite = async (req, res) => {
 // @access  Private
 export const getUserSnippets = async (req, res) => {
   try {
+    await connectDB();
     const page = parseInt(req.query.page) || 1;
     const limit = parseInt(req.query.limit) || 50; // Get more for dashboard
     const skip = (page - 1) * limit;
@@ -399,6 +410,7 @@ export const getUserSnippets = async (req, res) => {
 // @access  Private
 export const getfavoriteSnippets = async(req, res) => {
   try {
+    await connectDB();
     const userId = req.user._id;
 
     const user = await User.findById(userId).populate({

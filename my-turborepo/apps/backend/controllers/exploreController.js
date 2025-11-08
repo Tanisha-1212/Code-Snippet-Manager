@@ -1,11 +1,13 @@
 // controllers/exploreController.js
 import Snippet from '../models/Snippet.js';
+import connectDB from '../config/db.js';
 
 // @desc    Search snippets
 // @route   GET /api/explore/search
 // @access  Public
 export const searchSnippets = async (req, res) => {
   try {
+    await connectDB();
     const { q, language, tags, sort, page = 1, limit = 20 } = req.query;
 
     let query = { isPublic: true };
@@ -60,6 +62,7 @@ export const searchSnippets = async (req, res) => {
 // @access  Public
 export const getTrendingSnippets = async (req, res) => {
   try {
+    await connectDB();
     const limit = parseInt(req.query.limit) || 10;
 
     // Snippets from last 7 days, sorted by views + copies
@@ -85,6 +88,7 @@ export const getTrendingSnippets = async (req, res) => {
 // @access  Public
 export const getLanguages = async (req, res) => {
   try {
+    await connectDB();
     const languages = await Snippet.distinct('language', { isPublic: true });
     res.json(languages);
   } catch (error) {
@@ -97,6 +101,7 @@ export const getLanguages = async (req, res) => {
 // @access  Public
 export const getPopularTags = async (req, res) => {
   try {
+    await connectDB();
     const limit = parseInt(req.query.limit) || 20;
 
     const tags = await Snippet.aggregate([

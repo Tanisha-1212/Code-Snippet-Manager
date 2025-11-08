@@ -2,12 +2,14 @@
 import Collection from '../models/Collection.js';
 import User from '../models/User.js';
 import Snippet from '../models/Snippet.js';
+import connectDB from '../config/db.js';
 
 // @desc    Create new collection
 // @route   POST /api/collections
 // @access  Private
 export const createCollection = async (req, res) => {
   try {
+    await connectDB();
     const { name, description, color, icon } = req.body;
 
     if (!name) {
@@ -38,6 +40,7 @@ export const createCollection = async (req, res) => {
 // @access  Private
 export const getCollections = async (req, res) => {
   try {
+    await connectDB();
     const collections = await Collection.find({ user: req.user._id })
       .populate('snippets', 'title language tags')
       .sort({ createdAt: -1 });
@@ -53,6 +56,7 @@ export const getCollections = async (req, res) => {
 // @access  Private
 export const getCollectionById = async (req, res) => {
   try {
+    await connectDB();
     const collection = await Collection.findById(req.params.id)
       .populate({
         path: 'snippets',
@@ -79,6 +83,7 @@ export const getCollectionById = async (req, res) => {
 // @access  Private
 export const updateCollection = async (req, res) => {
   try {
+    await connectDB();
     const collection = await Collection.findById(req.params.id);
 
     if (!collection) {
@@ -110,6 +115,7 @@ export const updateCollection = async (req, res) => {
 // @access  Private
 export const deleteCollection = async (req, res) => {
   try {
+    await connectDB();
     const collection = await Collection.findById(req.params.id);
 
     if (!collection) {
