@@ -443,7 +443,7 @@ const SnippetDetailPage = () => {
           ) : (
             <div className="mb-8 p-4 rounded-lg bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800">
               <p className="text-blue-800 dark:text-blue-300">
-                <Link to="/auth" className="font-semibold hover:underline">
+                <Link to="/login" className="font-semibold hover:underline">
                   Sign in
                 </Link>{' '}
                 to join the conversation
