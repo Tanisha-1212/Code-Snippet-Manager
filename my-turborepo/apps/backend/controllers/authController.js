@@ -44,11 +44,13 @@ export const register = async (req, res) => {
       });
     }
 
-    // Create user
+    // Create user with empty arrays
     const user = await User.create({
       username,
       email,
       password,
+      collections: [],
+      favorites: [],
       stats: {
         totalSnippets: 0,
         publicSnippets: 0,
@@ -60,14 +62,15 @@ export const register = async (req, res) => {
       const token = generateToken(user._id);
       setTokenCookie(res, token);
 
+      // Fetch user with populated fields (same structure as getMe)
+      const populatedUser = await User.findById(user._id)
+        .select('-password')
+        .populate('snippets', 'title language tags createdAt')
+        .populate('collections', 'name color icon')
+        .populate('favorites', 'title language tags');
+
       // Return consistent user data structure
-      res.status(201).json({
-        _id: user._id,
-        username: user.username,
-        email: user.email,
-        profilePic: user.profilePic,
-        stats: user.stats
-      });
+      res.status(201).json(populatedUser);
     }
   } catch (error) {
     res.status(500).json({ message: error.message });
@@ -89,8 +92,11 @@ export const login = async (req, res) => {
 
     console.log('Attempting to find user with email:', email);
 
-    // Find user by email
-    const user = await User.findOne({ email });
+    // Find user by email and populate collections/favorites
+    const user = await User.findOne({ email })
+      .populate('snippets', 'title language tags createdAt')
+      .populate('collections', 'name color icon')
+      .populate('favorites', 'title language tags');
 
     console.log('User found:', user ? 'Yes' : 'No');
 
@@ -98,14 +104,21 @@ export const login = async (req, res) => {
       const token = generateToken(user._id);
       setTokenCookie(res, token);
 
+      // Remove password from response
+      const userResponse = user.toObject();
+      delete userResponse.password;
+
+      // Ensure arrays exist even if empty
+      userResponse.collections = userResponse.collections || [];
+      userResponse.favorites = userResponse.favorites || [];
+
+      console.log('=== SENDING USER TO FRONTEND ===');
+      console.log('Collections:', userResponse.collections);
+      console.log('Favorites:', userResponse.favorites);
+      console.log('==============================');
+
       // Return consistent user data structure (same as register and getMe)
-      res.json({
-        _id: user._id,
-        username: user.username,
-        email: user.email,
-        profilePic: user.profilePic,
-        stats: user.stats
-      });
+      res.json(userResponse);
     } else {
       res.status(401).json({ message: 'Invalid email or password' });
     }
@@ -140,13 +153,23 @@ export const logout = async (req, res) => {
 export const getMe = async (req, res) => {
   try {
     await connectDB();
+    
     const user = await User.findById(req.user._id)
       .select('-password')
       .populate('snippets', 'title language tags createdAt')
       .populate('collections', 'name color icon')
       .populate('favorites', 'title language tags');
 
-    res.json(user);
+    if (!user) {
+      return res.status(404).json({ message: 'User not found' });
+    }
+
+    // Ensure arrays exist even if empty
+    const userResponse = user.toObject();
+    userResponse.collections = userResponse.collections || [];
+    userResponse.favorites = userResponse.favorites || [];
+
+    res.json(userResponse);
   } catch (error) {
     res.status(500).json({ message: error.message });
   }
@@ -204,13 +227,12 @@ export const updateProfile = async (req, res) => {
 
     // Handle profile picture
     if (req.file) {
-      // For Cloudinary (you should use this):
       user.profilePic = req.file.path;
     }
 
     await user.save();
 
-    // Return updated user
+    // Return updated user with populated fields
     const updatedUser = await User.findById(userId)
       .select('-password')
       .populate('snippets', 'title language tags createdAt')
@@ -315,11 +337,9 @@ export const deleteAccount = async (req, res) => {
       return res.status(401).json({ message: 'Incorrect password' });
     }
 
-    // Delete user's snippets (optional - or keep them orphaned)
-    // await Snippet.deleteMany({ owner: userId });
+    await Snippet.deleteMany({ owner: userId });
 
-    // Delete user's collections
-    // await Collection.deleteMany({ owner: userId });
+    await Collection.deleteMany({ owner: userId });
 
     // Delete user
     await User.findByIdAndDelete(userId);
@@ -340,24 +360,6 @@ export const deleteAccount = async (req, res) => {
 
   } catch (error) {
     console.error('Error deleting account:', error);
-    res.status(500).json({ message: error.message });
-  }
-};
-
-export const getUserProfile = async (req, res) => {
-  try {
-    await connectDB();
-    const user = await User.findById(req.params.userId)
-      .select('-password -email') // Hide sensitive data
-      .populate('snippets', 'title language tags createdAt isPublic')
-      .populate('collections', 'name color');
-
-    if (!user) {
-      return res.status(404).json({ message: 'User not found' });
-    }
-
-    res.json(user);
-  } catch (error) {
     res.status(500).json({ message: error.message });
   }
 };
