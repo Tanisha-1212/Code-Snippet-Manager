@@ -95,8 +95,15 @@ export const login = async (req, res) => {
     // Find user by email and populate collections/favorites
     const user = await User.findOne({ email })
       .populate('snippets', 'title language tags createdAt')
-      .populate('collections', 'name color icon')
-      .populate('favorites', 'title language tags');
+      .populate('favorites', 'title language tags')
+      .populate({
+        path: 'collections',
+        select: 'name color icon snippets',
+        populate: {
+          path: 'snippets',
+          select: 'title language tags createdAt',
+      }
+      });
 
     console.log('User found:', user ? 'Yes' : 'No');
 
