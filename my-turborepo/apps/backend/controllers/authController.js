@@ -33,6 +33,7 @@ export const googleAuth = passport.authenticate('google', {
 // @access  Public
 export const googleAuthCallback = async (req, res) => {
   try {
+    await connectDB();
     // Generate token for the authenticated user
     const token = generateToken(req.user._id);
     setTokenCookie(res, token);
