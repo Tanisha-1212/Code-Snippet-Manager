@@ -4,13 +4,17 @@ import User from '../models/User.js';
 import dotenv from 'dotenv';
 dotenv.config();
 
+const GOOGLE_CALLBACK =
+  process.env.NODE_ENV === "production"
+    ? process.env.GOOGLE_CALLBACK_URL
+    : "http://localhost:5000/api/auth/google/callback";
 
 passport.use(
   new GoogleStrategy(
     {
       clientID: process.env.GOOGLE_CLIENT_ID,
       clientSecret: process.env.GOOGLE_CLIENT_SECRET,
-      callbackURL: process.env.GOOGLE_CALLBACK_URL || 'http://localhost:5000/api/auth/google/callback'
+      callbackURL: GOOGLE_CALLBACK
     },
     async (accessToken, refreshToken, profile, done) => {
       try {
@@ -39,6 +43,7 @@ passport.use(
 
         return done(null, user);
       } catch (error) {
+        console.error("Error in verifying user: ", error);
         return done(error, null);
       }
     }
