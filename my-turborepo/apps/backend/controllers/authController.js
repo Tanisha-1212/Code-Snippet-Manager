@@ -1,12 +1,51 @@
 import User from '../models/User.js';
 import jwt from 'jsonwebtoken';
 import connectDB from '../config/db.js';
+import passport from 'passport';
 
 // Generate JWT Token
 const generateToken = (id) => {
   return jwt.sign({ id }, process.env.JWT_SECRET, {
     expiresIn: '30d'
   });
+};
+
+// @desc    Google OAuth
+// @route   GET /api/auth/google
+// @access  Public
+export const googleAuth = passport.authenticate('google', {
+  scope: ['profile', 'email']
+});
+
+// @desc    Google OAuth Callback
+// @route   GET /api/auth/google/callback
+// @access  Public
+export const googleAuthCallback = async (req, res) => {
+  try {
+    // Generate token for the authenticated user
+    const token = generateToken(req.user._id);
+    setTokenCookie(res, token);
+
+    // Fetch user with populated fields
+    const user = await User.findById(req.user._id)
+      .select('-password')
+      .populate('snippets', 'title language tags createdAt')
+      .populate('favorites', 'title language tags')
+      .populate({
+        path: 'collections',
+        select: 'name color icon snippets',
+        populate: {
+          path: 'snippets',
+          select: 'title language tags createdAt',
+      }
+      });
+
+    // Redirect to frontend with success
+    res.redirect(`${process.env.FRONTEND_URL}/auth/google/success?token=${token}`);
+  } catch (error) {
+    console.error('Google auth callback error:', error);
+    res.redirect(`${process.env.FRONTEND_URL}/login?error=auth_failed`);
+  }
 };
 
 // Set cookie with token

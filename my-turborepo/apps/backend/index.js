@@ -3,6 +3,7 @@ const app = express();
 import cors from "cors";
 import connectDB from "./config/db.js";
 import cookieParser from "cookie-parser";
+import passport from './config/passport.js';
 
 import dotenv from "dotenv";
 dotenv.config();
@@ -33,6 +34,8 @@ app.use((req, res, next) => {
     express.urlencoded({ extended: true })(req, res, next);
   });
 });
+
+app.use(passport.initialize());
 
 // Routes
 import authRoutes from "./routes/authRoutes.js";
