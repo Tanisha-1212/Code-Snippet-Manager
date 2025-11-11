@@ -37,6 +37,19 @@ app.use((req, res, next) => {
 
 app.use(passport.initialize());
 
+app.use((req, res, next) => {
+  res.setHeader(
+    'Content-Security-Policy',
+    "default-src 'self'; " +
+    "connect-src 'self' https://accounts.google.com https://*.googleapis.com; " +
+    "script-src 'self' https://accounts.google.com https://apis.google.com; " +
+    "frame-src https://accounts.google.com; " +
+    "style-src 'self' 'unsafe-inline'; " +
+    "img-src 'self' data: https:;"
+  );
+  next();
+});
+
 // Routes
 import authRoutes from "./routes/authRoutes.js";
 import snippetRoutes from "./routes/snippetRoutes.js";
