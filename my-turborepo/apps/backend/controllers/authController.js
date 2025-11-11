@@ -10,6 +10,17 @@ const generateToken = (id) => {
   });
 };
 
+// Set cookie with token
+const setTokenCookie = (res, token) => {
+  res.cookie('token', token, {
+    httpOnly: true,
+    secure: process.env.NODE_ENV === 'production',
+    sameSite: process.env.NODE_ENV === 'production' ? 'none' : 'lax',
+    maxAge: 30 * 24 * 60 * 60 * 1000, // 30 days
+    path: '/' // Important: Cookie available on all routes
+  });
+};
+
 // @desc    Google OAuth
 // @route   GET /api/auth/google
 // @access  Public
@@ -46,17 +57,6 @@ export const googleAuthCallback = async (req, res) => {
     console.error('Google auth callback error:', error);
     res.redirect(`${process.env.FRONTEND_URL}/login?error=auth_failed`);
   }
-};
-
-// Set cookie with token
-const setTokenCookie = (res, token) => {
-  res.cookie('token', token, {
-    httpOnly: true,
-    secure: process.env.NODE_ENV === 'production',
-    sameSite: process.env.NODE_ENV === 'production' ? 'none' : 'lax',
-    maxAge: 30 * 24 * 60 * 60 * 1000, // 30 days
-    path: '/' // Important: Cookie available on all routes
-  });
 };
 
 // @desc    Register new user
