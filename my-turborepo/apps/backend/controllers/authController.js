@@ -25,7 +25,8 @@ const setTokenCookie = (res, token) => {
 // @route   GET /api/auth/google
 // @access  Public
 export const googleAuth = passport.authenticate('google', {
-  scope: ['profile', 'email']
+  scope: ['profile', 'email'],
+  session: false
 });
 
 // @desc    Google OAuth Callback
@@ -34,26 +35,20 @@ export const googleAuth = passport.authenticate('google', {
 export const googleAuthCallback = async (req, res) => {
   try {
     await connectDB();
-    // Generate token for the authenticated user
+    
+    if (!req.user) {
+      console.error('No user in request after Google auth');
+      return res.redirect(`${process.env.FRONTEND_URL}/login?error=auth_failed`);
+    }
+
+    // Generate token
     const token = generateToken(req.user._id);
     setTokenCookie(res, token);
 
-    // Fetch user with populated fields
-    const user = await User.findById(req.user._id)
-      .select('-password')
-      .populate('snippets', 'title language tags createdAt')
-      .populate('favorites', 'title language tags')
-      .populate({
-        path: 'collections',
-        select: 'name color icon snippets',
-        populate: {
-          path: 'snippets',
-          select: 'title language tags createdAt',
-      }
-      });
+    console.log('Google auth successful for user:', req.user.email);
 
-    // Redirect to frontend with success
-    res.redirect(`${process.env.FRONTEND_URL}/auth/google/success?token=${token}`);
+    // Redirect to frontend dashboard (token is in cookie)
+    res.redirect(`${process.env.FRONTEND_URL}/dashboard`);
   } catch (error) {
     console.error('Google auth callback error:', error);
     res.redirect(`${process.env.FRONTEND_URL}/login?error=auth_failed`);
@@ -66,6 +61,7 @@ export const googleAuthCallback = async (req, res) => {
 export const register = async (req, res) => {
   try {
     await connectDB();
+    console.log(process.env.GOOGLE_CALLBACK_URL);
     const { username, email, password } = req.body;
 
     // Validation

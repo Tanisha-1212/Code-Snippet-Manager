@@ -9,6 +9,8 @@ import dotenv from "dotenv";
 dotenv.config();
 connectDB();
 
+app.use(passport.initialize());
+
 app.use(cookieParser());
 
 // CORS configuration
@@ -35,7 +37,6 @@ app.use((req, res, next) => {
   });
 });
 
-app.use(passport.initialize());
 
 app.use((req, res, next) => {
   res.setHeader(

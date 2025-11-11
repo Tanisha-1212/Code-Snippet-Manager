@@ -4,10 +4,8 @@ import User from '../models/User.js';
 import dotenv from 'dotenv';
 dotenv.config();
 
-const GOOGLE_CALLBACK =
-  process.env.NODE_ENV === "production"
-    ? process.env.GOOGLE_CALLBACK_URL
-    : "http://localhost:5000/api/auth/google/callback";
+// Simplified - just use env variable with fallback
+const GOOGLE_CALLBACK = process.env.GOOGLE_CALLBACK_URL || "http://localhost:5000/api/auth/google/callback";
 
 passport.use(
   new GoogleStrategy(
@@ -22,7 +20,6 @@ passport.use(
         let user = await User.findOne({ email: profile.emails[0].value });
 
         if (user) {
-          // User exists, return user
           return done(null, user);
         }
 
@@ -31,7 +28,7 @@ passport.use(
           username: profile.displayName.replace(/\s+/g, '_').toLowerCase() + '_' + Date.now(),
           email: profile.emails[0].value,
           profilePic: profile.photos[0]?.value || '',
-          password: Math.random().toString(36).slice(-8), // Random password
+          password: Math.random().toString(36).slice(-8) + Math.random().toString(36).slice(-8), // More secure random password
           collections: [],
           favorites: [],
           stats: {
@@ -43,7 +40,7 @@ passport.use(
 
         return done(null, user);
       } catch (error) {
-        console.error("Error in verifying user: ", error);
+        console.error("Error in Google OAuth:", error);
         return done(error, null);
       }
     }
