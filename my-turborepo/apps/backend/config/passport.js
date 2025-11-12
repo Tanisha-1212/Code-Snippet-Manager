@@ -5,50 +5,27 @@ import User from '../models/User.js';
 import dotenv from 'dotenv';
 dotenv.config();
 
-// Smart callback URL detection
 const GOOGLE_CALLBACK = (() => {
   if (process.env.GOOGLE_CALLBACK_URL) {
-    if (process.env.GOOGLE_CALLBACK_URL.includes('localhost') || 
-        process.env.GOOGLE_CALLBACK_URL.includes('127.0.0.1')) {
-      return process.env.GOOGLE_CALLBACK_URL;
-    }
-    
-    if (process.env.PORT === '5000') {
-      return 'http://localhost:5000/api/auth/google/callback';
-    }
-    
     return process.env.GOOGLE_CALLBACK_URL;
   }
-  
   return 'http://localhost:5000/api/auth/google/callback';
 })();
 
-const FRONTEND_REDIRECT = process.env.PORT === '5000' 
-  ? 'http://localhost:5173' 
-  : process.env.FRONTEND_URL;
+const FRONTEND_REDIRECT = (() => {
+  if (process.env.FRONTEND_URL) {
+    return process.env.FRONTEND_URL;
+  }
+  return 'http://localhost:5173';
+})();
 
 console.log('=== GOOGLE OAUTH CONFIG ===');
+console.log('NODE_ENV:', process.env.NODE_ENV);
 console.log('Callback URL:', GOOGLE_CALLBACK);
 console.log('Frontend URL:', FRONTEND_REDIRECT);
 console.log('==========================');
 
-// Passport serialization
-passport.serializeUser((user, done) => {
-  done(null, user._id);
-});
-
-passport.deserializeUser(async (id, done) => {
-  try {
-    const user = await User.findById(id)
-      .select('-password')
-      .populate('snippets', 'title language tags createdAt')
-      .populate('collections', 'name color icon')
-      .populate('favorites', 'title language tags');
-    done(null, user);
-  } catch (error) {
-    done(error, null);
-  }
-});
+// NO serialization/deserialization needed for JWT
 
 passport.use(
   new GoogleStrategy(
@@ -56,7 +33,7 @@ passport.use(
       clientID: process.env.GOOGLE_CLIENT_ID,
       clientSecret: process.env.GOOGLE_CLIENT_SECRET,
       callbackURL: GOOGLE_CALLBACK,
-      proxy: true, // CRITICAL for Vercel
+      proxy: true,
     },
     async (accessToken, refreshToken, profile, done) => {
       try {

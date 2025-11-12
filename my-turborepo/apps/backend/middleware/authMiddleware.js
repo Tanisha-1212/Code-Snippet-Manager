@@ -1,38 +1,48 @@
-// middleware/auth.js
+// authMiddleware.js
 import jwt from 'jsonwebtoken';
 import User from '../models/User.js';
 
 export const protect = async (req, res, next) => {
   try {
-    // Check if user is authenticated via session
-    if (req.isAuthenticated && req.isAuthenticated()) {
-      return next();
+    let token;
+
+    // Get token from cookie
+    if (req.cookies.token) {
+      token = req.cookies.token;
     }
 
-    res.status(401).json({ message: 'Not authorized, please login' });
+    if (!token) {
+      return res.status(401).json({ message: 'Not authorized, please login' });
+    }
+
+    // Verify token
+    const decoded = jwt.verify(token, process.env.JWT_SECRET);
+    
+    // Get user from token
+    req.user = await User.findById(decoded.id).select('-password');
+
+    if (!req.user) {
+      return res.status(401).json({ message: 'User not found' });
+    }
+
+    next();
   } catch (error) {
     console.error('Auth middleware error:', error);
     res.status(401).json({ message: 'Not authorized, token failed' });
   }
 };
-// Optional authentication - doesn't fail if no token
 
 export const optionalAuth = async (req, res, next) => {
   try {
-    // Check if user is authenticated via session
-    if (req.isAuthenticated && req.isAuthenticated() && req.user) {
-      // req.user is already populated by passport.deserializeUser
-      // which includes the populated fields (snippets, collections, favorites)
-      return next();
+    const token = req.cookies.token;
+
+    if (token) {
+      const decoded = jwt.verify(token, process.env.JWT_SECRET);
+      req.user = await User.findById(decoded.id).select('-password');
     }
     
-    // No user authenticated, continue anyway
-    req.user = null;
     next();
   } catch (error) {
-    // If there's any error, just continue without user
-    console.error('Optional auth error:', error);
-    req.user = null;
     next();
   }
 };

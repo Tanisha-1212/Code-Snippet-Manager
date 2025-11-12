@@ -1,13 +1,33 @@
 import User from '../models/User.js';
+import jwt from 'jsonwebtoken';
 import connectDB from '../config/db.js';
 import passport from 'passport';
 import { FRONTEND_REDIRECT } from '../config/passport.js';
+
+// Generate JWT Token
+const generateToken = (id) => {
+  return jwt.sign({ id }, process.env.JWT_SECRET, {
+    expiresIn: '30d'
+  });
+};
+
+// Set cookie with token
+const setTokenCookie = (res, token) => {
+  res.cookie('token', token, {
+    httpOnly: true,
+    secure: process.env.NODE_ENV === 'production', // true in production
+    sameSite: process.env.NODE_ENV === 'production' ? 'none' : 'lax',
+    maxAge: 30 * 24 * 60 * 60 * 1000, // 30 days
+    path: '/'
+  });
+};
 
 // @desc    Google OAuth
 // @route   GET /api/auth/google
 // @access  Public
 export const googleAuth = passport.authenticate('google', {
-  scope: ['profile', 'email']
+  scope: ['profile', 'email'],
+  session: false
 });
 
 // @desc    Google OAuth Callback
@@ -19,25 +39,20 @@ export const googleAuthCallback = async (req, res) => {
     
     if (!req.user) {
       console.error('No user in request after Google auth');
-      return res.redirect(`${FRONTEND_REDIRECT}/auth/callback?error=auth_failed`);
+      return res.redirect(`${FRONTEND_REDIRECT}/login?error=auth_failed`);
     }
 
+    // Generate JWT token
+    const token = generateToken(req.user._id);
+    setTokenCookie(res, token);
+
     console.log('Google auth successful for user:', req.user.email);
-    console.log('Session ID:', req.sessionID);
 
-    // ⬇️ Force session to save before redirecting
-    req.session.save((err) => {
-      if (err) {
-        console.error('Session save error:', err);
-        return res.redirect(`${FRONTEND_REDIRECT}/auth/callback?error=session_failed`);
-      }
-
-      console.log('💾 Session saved successfully.');
-      res.redirect(`${FRONTEND_REDIRECT}/auth/callback`);
-    });
+    // Redirect to frontend callback
+    res.redirect(`${FRONTEND_REDIRECT}/auth/callback`);
   } catch (error) {
     console.error('Google auth callback error:', error);
-    res.redirect(`${FRONTEND_REDIRECT}/auth/callback?error=auth_failed`);
+    res.redirect(`${FRONTEND_REDIRECT}/login?error=auth_failed`);
   }
 };
 
@@ -79,22 +94,20 @@ export const register = async (req, res) => {
       }
     });
 
-    // Log user in (create session)
-    req.login(user, (err) => {
-      if (err) {
-        return res.status(500).json({ message: 'Login failed after registration' });
-      }
+    if (user) {
+      // Generate token and set cookie
+      const token = generateToken(user._id);
+      setTokenCookie(res, token);
 
       // Fetch user with populated fields
-      User.findById(user._id)
+      const populatedUser = await User.findById(user._id)
         .select('-password')
         .populate('snippets', 'title language tags createdAt')
         .populate('collections', 'name color icon')
-        .populate('favorites', 'title language tags')
-        .then(populatedUser => {
-          res.status(201).json(populatedUser);
-        });
-    });
+        .populate('favorites', 'title language tags');
+
+      res.status(201).json(populatedUser);
+    }
   } catch (error) {
     res.status(500).json({ message: error.message });
   }
@@ -131,27 +144,24 @@ export const login = async (req, res) => {
     console.log('User found:', user ? 'Yes' : 'No');
 
     if (user && (await user.matchPassword(password))) {
-      // Log user in (create session)
-      req.login(user, (err) => {
-        if (err) {
-          return res.status(500).json({ message: 'Login failed' });
-        }
+      // Generate token and set cookie
+      const token = generateToken(user._id);
+      setTokenCookie(res, token);
 
-        // Remove password from response
-        const userResponse = user.toObject();
-        delete userResponse.password;
+      // Remove password from response
+      const userResponse = user.toObject();
+      delete userResponse.password;
 
-        // Ensure arrays exist
-        userResponse.collections = userResponse.collections || [];
-        userResponse.favorites = userResponse.favorites || [];
+      // Ensure arrays exist
+      userResponse.collections = userResponse.collections || [];
+      userResponse.favorites = userResponse.favorites || [];
 
-        console.log('=== USER LOGGED IN ===');
-        console.log('Session ID:', req.sessionID);
-        console.log('User:', userResponse.email);
-        console.log('=====================');
+      console.log('=== USER LOGGED IN ===');
+      console.log('User:', userResponse.email);
+      console.log('Token set in cookie');
+      console.log('=====================');
 
-        res.json(userResponse);
-      });
+      res.json(userResponse);
     } else {
       res.status(401).json({ message: 'Invalid email or password' });
     }
@@ -166,19 +176,16 @@ export const login = async (req, res) => {
 // @access  Private
 export const logout = async (req, res) => {
   try {
-    req.logout((err) => {
-      if (err) {
-        return res.status(500).json({ message: 'Logout failed' });
-      }
-      
-      req.session.destroy((err) => {
-        if (err) {
-          return res.status(500).json({ message: 'Session destruction failed' });
-        }
-        res.clearCookie('connect.sid'); // Clear session cookie
-        res.json({ message: 'Logged out successfully' });
-      });
+    // Clear the token cookie
+    res.cookie('token', '', {
+      httpOnly: true,
+      secure: process.env.NODE_ENV === 'production',
+      sameSite: process.env.NODE_ENV === 'production' ? 'none' : 'lax',
+      expires: new Date(0),
+      path: '/'
     });
+    
+    res.json({ message: 'Logged out successfully' });
   } catch (error) {
     res.status(500).json({ message: error.message });
   }
@@ -387,18 +394,18 @@ export const deleteAccount = async (req, res) => {
     // Delete user
     await User.findByIdAndDelete(userId);
 
-    // Destroy session
-    req.logout((err) => {
-      if (err) console.error('Logout error:', err);
-      
-      req.session.destroy((err) => {
-        if (err) console.error('Session destroy error:', err);
-        res.clearCookie('connect.sid');
-        res.json({
-          success: true,
-          message: 'Account deleted successfully'
-        });
-      });
+    // Clear token cookie
+    res.cookie('token', '', {
+      httpOnly: true,
+      secure: process.env.NODE_ENV === 'production',
+      sameSite: process.env.NODE_ENV === 'production' ? 'none' : 'lax',
+      expires: new Date(0),
+      path: '/'
+    });
+
+    res.json({
+      success: true,
+      message: 'Account deleted successfully'
     });
 
   } catch (error) {
