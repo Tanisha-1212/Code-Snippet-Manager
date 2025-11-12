@@ -4,39 +4,35 @@ import User from '../models/User.js';
 
 export const protect = async (req, res, next) => {
   try {
-    // Get token from cookie
-    const token = req.cookies.token;
-
-    if (!token) {
-      return res.status(401).json({ message: 'Not authorized, no token' });
+    // Check if user is authenticated via session
+    if (req.isAuthenticated && req.isAuthenticated()) {
+      return next();
     }
 
-    // Verify token
-    const decoded = jwt.verify(token, process.env.JWT_SECRET);
-    
-    // Get user from token
-    req.user = await User.findById(decoded.id).select('-password');
-    
-    next();
+    res.status(401).json({ message: 'Not authorized, please login' });
   } catch (error) {
+    console.error('Auth middleware error:', error);
     res.status(401).json({ message: 'Not authorized, token failed' });
   }
 };
-
 // Optional authentication - doesn't fail if no token
+
 export const optionalAuth = async (req, res, next) => {
   try {
-    const token = req.cookies.token;
-
-    if (token) {
-      const decoded = jwt.verify(token, process.env.JWT_SECRET);
-      req.user = await User.findById(decoded.id).select('-password');
+    // Check if user is authenticated via session
+    if (req.isAuthenticated && req.isAuthenticated() && req.user) {
+      // req.user is already populated by passport.deserializeUser
+      // which includes the populated fields (snippets, collections, favorites)
+      return next();
     }
     
-    // Continue regardless of authentication
+    // No user authenticated, continue anyway
+    req.user = null;
     next();
   } catch (error) {
-    // If token is invalid, just continue without user
+    // If there's any error, just continue without user
+    console.error('Optional auth error:', error);
+    req.user = null;
     next();
   }
 };

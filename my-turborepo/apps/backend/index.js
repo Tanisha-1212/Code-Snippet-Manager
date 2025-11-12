@@ -1,15 +1,17 @@
-import express from "express";
-const app = express();
-import cors from "cors";
-import connectDB from "./config/db.js";
-import cookieParser from "cookie-parser";
+import express from 'express';
+import cors from 'cors';
+import session from 'express-session';
+import MongoStore from 'connect-mongo';
 import passport from './config/passport.js';
+import authRoutes from './routes/authRoutes.js';
+import dotenv from 'dotenv';
+import connectDB from './config/db.js';
+import cookieParser from 'cookie-parser';
 
-import dotenv from "dotenv";
 dotenv.config();
-connectDB();
 
-app.use(passport.initialize());
+const app = express();
+connectDB();
 
 app.use(cookieParser());
 
@@ -25,6 +27,32 @@ app.use(cors({
   allowedHeaders: ['Content-Type', 'Authorization', 'Cookie'],
   exposedHeaders: ['Set-Cookie'],
 }));
+
+
+// Body parser
+app.use(express.json());
+app.use(express.urlencoded({ extended: true }));
+
+// Session configuration - MUST come before passport
+app.use(session({
+  secret: process.env.SESSION_SECRET || 'your-secret-key-change-this',
+  resave: false,
+  saveUninitialized: false,
+  store: MongoStore.create({
+    mongoUrl: process.env.MONGODB_URL,
+    touchAfter: 24 * 3600 // Lazy session update
+  }),
+  cookie: {
+    secure: process.env.NODE_ENV === 'production',
+    httpOnly: true,
+    maxAge: 1000 * 60 * 60 * 24 * 7, // 7 days
+    sameSite: process.env.NODE_ENV === 'production' ? 'none' : 'lax',
+  }
+}));
+
+// Passport middleware
+app.use(passport.initialize());
+app.use(passport.session());
 
 // Body parsers
 app.use((req, res, next) => {
@@ -52,7 +80,6 @@ app.use((req, res, next) => {
 });
 
 // Routes
-import authRoutes from "./routes/authRoutes.js";
 import snippetRoutes from "./routes/snippetRoutes.js";
 import collectionRoutes from "./routes/collectionRoutes.js";
 import commentRoutes from "./routes/commentRoutes.js";

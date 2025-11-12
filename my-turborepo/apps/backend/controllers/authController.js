@@ -1,32 +1,13 @@
 import User from '../models/User.js';
-import jwt from 'jsonwebtoken';
 import connectDB from '../config/db.js';
 import passport from 'passport';
-
-// Generate JWT Token
-const generateToken = (id) => {
-  return jwt.sign({ id }, process.env.JWT_SECRET, {
-    expiresIn: '30d'
-  });
-};
-
-// Set cookie with token
-const setTokenCookie = (res, token) => {
-  res.cookie('token', token, {
-    httpOnly: true,
-    secure: process.env.NODE_ENV === 'production',
-    sameSite: process.env.NODE_ENV === 'production' ? 'none' : 'lax',
-    maxAge: 30 * 24 * 60 * 60 * 1000, // 30 days
-    path: '/' // Important: Cookie available on all routes
-  });
-};
+import { FRONTEND_REDIRECT } from '../config/passport.js';
 
 // @desc    Google OAuth
 // @route   GET /api/auth/google
 // @access  Public
 export const googleAuth = passport.authenticate('google', {
-  scope: ['profile', 'email'],
-  session: false
+  scope: ['profile', 'email']
 });
 
 // @desc    Google OAuth Callback
@@ -38,20 +19,17 @@ export const googleAuthCallback = async (req, res) => {
     
     if (!req.user) {
       console.error('No user in request after Google auth');
-      return res.redirect(`${process.env.FRONTEND_URL}/login?error=auth_failed`);
+      return res.redirect(`${FRONTEND_REDIRECT}/auth/callback?error=auth_failed`);
     }
 
-    // Generate token
-    const token = generateToken(req.user._id);
-    setTokenCookie(res, token);
-
     console.log('Google auth successful for user:', req.user.email);
+    console.log('Session ID:', req.sessionID);
 
-    // Redirect to frontend dashboard (token is in cookie)
-    res.redirect(`${process.env.FRONTEND_URL}/dashboard`);
+    // User is now in session, redirect to frontend
+    res.redirect(`${FRONTEND_REDIRECT}/auth/callback`);
   } catch (error) {
     console.error('Google auth callback error:', error);
-    res.redirect(`${process.env.FRONTEND_URL}/login?error=auth_failed`);
+    res.redirect(`${FRONTEND_REDIRECT}/auth/callback?error=auth_failed`);
   }
 };
 
@@ -61,7 +39,6 @@ export const googleAuthCallback = async (req, res) => {
 export const register = async (req, res) => {
   try {
     await connectDB();
-    console.log(process.env.GOOGLE_CALLBACK_URL);
     const { username, email, password } = req.body;
 
     // Validation
@@ -80,7 +57,7 @@ export const register = async (req, res) => {
       });
     }
 
-    // Create user with empty arrays
+    // Create user
     const user = await User.create({
       username,
       email,
@@ -94,20 +71,22 @@ export const register = async (req, res) => {
       }
     });
 
-    if (user) {
-      const token = generateToken(user._id);
-      setTokenCookie(res, token);
+    // Log user in (create session)
+    req.login(user, (err) => {
+      if (err) {
+        return res.status(500).json({ message: 'Login failed after registration' });
+      }
 
-      // Fetch user with populated fields (same structure as getMe)
-      const populatedUser = await User.findById(user._id)
+      // Fetch user with populated fields
+      User.findById(user._id)
         .select('-password')
         .populate('snippets', 'title language tags createdAt')
         .populate('collections', 'name color icon')
-        .populate('favorites', 'title language tags');
-
-      // Return consistent user data structure
-      res.status(201).json(populatedUser);
-    }
+        .populate('favorites', 'title language tags')
+        .then(populatedUser => {
+          res.status(201).json(populatedUser);
+        });
+    });
   } catch (error) {
     res.status(500).json({ message: error.message });
   }
@@ -128,7 +107,7 @@ export const login = async (req, res) => {
 
     console.log('Attempting to find user with email:', email);
 
-    // Find user by email and populate collections/favorites
+    // Find user by email
     const user = await User.findOne({ email })
       .populate('snippets', 'title language tags createdAt')
       .populate('favorites', 'title language tags')
@@ -138,30 +117,33 @@ export const login = async (req, res) => {
         populate: {
           path: 'snippets',
           select: 'title language tags createdAt',
-      }
+        }
       });
 
     console.log('User found:', user ? 'Yes' : 'No');
 
     if (user && (await user.matchPassword(password))) {
-      const token = generateToken(user._id);
-      setTokenCookie(res, token);
+      // Log user in (create session)
+      req.login(user, (err) => {
+        if (err) {
+          return res.status(500).json({ message: 'Login failed' });
+        }
 
-      // Remove password from response
-      const userResponse = user.toObject();
-      delete userResponse.password;
+        // Remove password from response
+        const userResponse = user.toObject();
+        delete userResponse.password;
 
-      // Ensure arrays exist even if empty
-      userResponse.collections = userResponse.collections || [];
-      userResponse.favorites = userResponse.favorites || [];
+        // Ensure arrays exist
+        userResponse.collections = userResponse.collections || [];
+        userResponse.favorites = userResponse.favorites || [];
 
-      console.log('=== SENDING USER TO FRONTEND ===');
-      console.log('Collections:', userResponse.collections);
-      console.log('Favorites:', userResponse.favorites);
-      console.log('==============================');
+        console.log('=== USER LOGGED IN ===');
+        console.log('Session ID:', req.sessionID);
+        console.log('User:', userResponse.email);
+        console.log('=====================');
 
-      // Return consistent user data structure (same as register and getMe)
-      res.json(userResponse);
+        res.json(userResponse);
+      });
     } else {
       res.status(401).json({ message: 'Invalid email or password' });
     }
@@ -176,15 +158,19 @@ export const login = async (req, res) => {
 // @access  Private
 export const logout = async (req, res) => {
   try {
-    await connectDB();
-    res.cookie('token', '', {
-      httpOnly: true,
-      secure: process.env.NODE_ENV === 'production',
-      sameSite: process.env.NODE_ENV === 'production' ? 'none' : 'lax',
-      expires: new Date(0),
-      path: '/' // Important: Clear cookie from all routes
+    req.logout((err) => {
+      if (err) {
+        return res.status(500).json({ message: 'Logout failed' });
+      }
+      
+      req.session.destroy((err) => {
+        if (err) {
+          return res.status(500).json({ message: 'Session destruction failed' });
+        }
+        res.clearCookie('connect.sid'); // Clear session cookie
+        res.json({ message: 'Logged out successfully' });
+      });
     });
-    res.json({ message: 'Logged out successfully' });
   } catch (error) {
     res.status(500).json({ message: error.message });
   }
@@ -197,6 +183,10 @@ export const getMe = async (req, res) => {
   try {
     await connectDB();
     
+    if (!req.user) {
+      return res.status(401).json({ message: 'Not authenticated' });
+    }
+
     const user = await User.findById(req.user._id)
       .select('-password')
       .populate('snippets', 'title language tags createdAt')
@@ -207,7 +197,7 @@ export const getMe = async (req, res) => {
       return res.status(404).json({ message: 'User not found' });
     }
 
-    // Ensure arrays exist even if empty
+    // Ensure arrays exist
     const userResponse = user.toObject();
     userResponse.collections = userResponse.collections || [];
     userResponse.favorites = userResponse.favorites || [];
@@ -218,8 +208,7 @@ export const getMe = async (req, res) => {
   }
 };
 
-
-// @desc    Update user profile (username, email, bio, profilePic)
+// @desc    Update user profile
 // @route   PUT /api/auth/profile
 // @access  Private
 export const updateProfile = async (req, res) => {
@@ -380,25 +369,28 @@ export const deleteAccount = async (req, res) => {
       return res.status(401).json({ message: 'Incorrect password' });
     }
 
-    await Snippet.deleteMany({ owner: userId });
+    // Import models if needed
+    const Snippet = (await import('../models/Snippet.js')).default;
+    const Collection = (await import('../models/Collection.js')).default;
 
+    await Snippet.deleteMany({ owner: userId });
     await Collection.deleteMany({ owner: userId });
 
     // Delete user
     await User.findByIdAndDelete(userId);
 
-    // Clear cookie
-    res.cookie('token', '', {
-      httpOnly: true,
-      secure: process.env.NODE_ENV === 'production',
-      sameSite: process.env.NODE_ENV === 'production' ? 'none' : 'lax',
-      expires: new Date(0),
-      path: '/'
-    });
-
-    res.json({
-      success: true,
-      message: 'Account deleted successfully'
+    // Destroy session
+    req.logout((err) => {
+      if (err) console.error('Logout error:', err);
+      
+      req.session.destroy((err) => {
+        if (err) console.error('Session destroy error:', err);
+        res.clearCookie('connect.sid');
+        res.json({
+          success: true,
+          message: 'Account deleted successfully'
+        });
+      });
     });
 
   } catch (error) {

@@ -19,17 +19,18 @@ router.post("/register", register);
 router.post("/login", login);
 router.post("/logout", protect, logout);
 router.get("/me", protect, getMe);
+
 router.put('/profile', protect, upload.single('profilePic'), handleMulterError, updateProfile);
 router.put('/change-password', protect, changePassword);
 router.delete('/account', protect, deleteAccount);
 
 // Google OAuth routes
 router.get('/google', googleAuth);
+
 router.get(
   '/google/callback',
   passport.authenticate('google', { 
-    session: false,
-    failureRedirect: `${process.env.FRONTEND_URL}/login?error=auth_failed`
+    failureRedirect: `${process.env.FRONTEND_URL || 'http://localhost:5173'}/login?error=auth_failed`
   }),
   googleAuthCallback
 );
