@@ -13,17 +13,19 @@ dotenv.config();
 const app = express();
 connectDB();
 
+// Trust proxy - CRITICAL for Vercel
+app.set('trust proxy', 1);
 
-app.use(cors({
-  origin: function (origin, callback) {
+// CORS configuration
+const corsOptions = {
+  origin: function(origin, callback) {
     const allowedOrigins = [
       'http://localhost:5173',
       'https://code-snippet-manager-inky.vercel.app'
     ];
-
-    // Allow requests with no origin (like Postman)
+    
     if (!origin) return callback(null, true);
-
+    
     if (allowedOrigins.includes(origin)) {
       callback(null, true);
     } else {
@@ -32,48 +34,56 @@ app.use(cors({
   },
   credentials: true,
   methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS', 'PATCH'],
-  allowedHeaders: ['Content-Type', 'Authorization'],
-  exposedHeaders: ['set-cookie'],
-}));
+  allowedHeaders: ['Content-Type', 'Authorization', 'Cookie', 'Set-Cookie'],
+  exposedHeaders: ['Set-Cookie'],
+  optionsSuccessStatus: 200,
+};
 
+app.use(cors(corsOptions));
 
-// 2. Cookie parser - BEFORE session
+// Cookie parser
 app.use(cookieParser());
-
 
 // Body parser
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
-// Session configuration - MUST come before passport
+// Session configuration
 app.use(session({
   secret: process.env.SESSION_SECRET,
   resave: false,
   saveUninitialized: false,
-  proxy: true, // CRITICAL for Vercel
+  proxy: true,
   store: MongoStore.create({
     mongoUrl: process.env.MONGODB_URL,
     touchAfter: 24 * 3600,
   }),
   cookie: {
-    secure: false, // MUST be true for HTTPS
+    secure: true,
     httpOnly: true,
-    maxAge: 1000 * 60 * 60 * 24 * 7, // 7 days
-    sameSite: 'lax', // CRITICAL for cross-origin
+    maxAge: 1000 * 60 * 60 * 24 * 7,
+    sameSite: 'none',
     path: '/',
   },
   name: 'connect.sid',
+  rolling: true,
 }));
 
 // Passport middleware
 app.use(passport.initialize());
 app.use(passport.session());
 
+// Ensure CORS credentials headers
 app.use((req, res, next) => {
-  console.log('Session object:', req.session);
+  const origin = req.headers.origin;
+  if (origin && (origin === 'http://localhost:5173' || origin === 'https://code-snippet-manager-inky.vercel.app')) {
+    res.setHeader('Access-Control-Allow-Origin', origin);
+    res.setHeader('Access-Control-Allow-Credentials', 'true');
+  }
   next();
 });
 
+// Debug middleware
 app.use((req, res, next) => {
   console.log('📍 Request:', req.method, req.path);
   console.log('🍪 Session ID:', req.sessionID);
@@ -82,18 +92,7 @@ app.use((req, res, next) => {
   next();
 });
 
-// Body parsers
-app.use((req, res, next) => {
-  if (req.is('multipart/form-data')) {
-    return next();
-  }
-  
-  express.json()(req, res, () => {
-    express.urlencoded({ extended: true })(req, res, next);
-  });
-});
-
-
+// CSP headers
 app.use((req, res, next) => {
   res.setHeader(
     'Content-Security-Policy',
@@ -127,7 +126,6 @@ app.get("/", (req, res) => {
 
 const PORT = process.env.PORT || 5000;
 
-// Start server (skipped in serverless environments like Vercel)
 if (process.env.VERCEL !== '1') {
   app.listen(PORT, () => {
     console.log(`🚀 Server running on http://localhost:${PORT}`);
