@@ -205,8 +205,15 @@ export const getMe = async (req, res) => {
     const user = await User.findById(req.user._id)
       .select('-password')
       .populate('snippets', 'title language tags createdAt')
-      .populate('collections', 'name color icon')
-      .populate('favorites', 'title language tags');
+      .populate('favorites', 'title language tags')
+      .populate({
+        path: 'collections',
+        select: 'name color icon snippets',
+        populate: {
+          path: 'snippets',
+          select: 'title language tags createdAt',
+        }
+      });
 
     if (!user) {
       return res.status(404).json({ message: 'User not found' });

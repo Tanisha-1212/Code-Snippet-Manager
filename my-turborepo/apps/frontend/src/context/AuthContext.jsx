@@ -25,7 +25,6 @@ export const AuthProvider = ({ children }) => {
   const checkAuth = async () => {
     try {
       setLoading(true);
-      // Remove /api since it's already in baseURL
       const { data } = await axiosInstance.get("/api/auth/me");
       
       console.log('✅ Auth check response:', data);
@@ -51,7 +50,6 @@ export const AuthProvider = ({ children }) => {
   const register = async (username, email, password) => {
     try {
       setLoading(true);
-      // Session is created automatically by backend
       const { data } = await axiosInstance.post("/api/auth/register", {
         username,
         email,
@@ -76,7 +74,6 @@ export const AuthProvider = ({ children }) => {
   const login = async (email, password) => {
     try {
       setLoading(true);
-      // Session is created automatically by backend
       const { data } = await axiosInstance.post("/api/auth/login", {
         email,
         password,
@@ -97,14 +94,10 @@ export const AuthProvider = ({ children }) => {
     }
   };
 
-  // Google OAuth login - NO TOKEN NEEDED with sessions!
-  // This is called when user returns from Google OAuth
   const handleGoogleCallback = async () => {
     try {
       setLoading(true);
       
-      // Session cookie is already set by backend
-      // Just fetch user data
       const { data } = await axiosInstance.get("/api/auth/me");
       
       if (data && data._id) {
@@ -124,9 +117,12 @@ export const AuthProvider = ({ children }) => {
 
   // Initiate Google OAuth flow
   const initiateGoogleLogin = () => {
-    // Redirect to backend Google OAuth endpoint
-    // Remove /api since baseURL includes it
-    const backendUrl = import.meta.env.VITE_API_URL || 'http://localhost:5000';
+    // Auto-detect environment
+    const backendUrl = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1'
+      ? 'http://localhost:5000'
+      : (import.meta.env.VITE_API_URL || 'https://code-snippet-manager-oowo.vercel.app');
+    
+    console.log('🔵 Redirecting to:', `${backendUrl}/api/auth/google`);
     window.location.href = `${backendUrl}/api/auth/google`;
   };
 

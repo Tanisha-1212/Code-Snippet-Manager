@@ -54,6 +54,14 @@ const App = () => {
         {/* Public Routes */}
         <Route path="/explore" element={<ExplorePage />} />
         <Route path="/snippet/:id" element={<SnippetDetailPage />} />
+        {/* Profile Routes - IMPORTANT ORDER */}
+        {/* My Profile (logged in user) */}
+        <Route 
+          path="/profile" 
+          element={isAuthenticated ? <ProfilePage /> : <Navigate to="/login" replace />} 
+        />
+        
+        {/* Other User's Profile (public view) */}
         <Route path="/users/:userId" element={<ProfilePage />} />
         
         {/* Protected Routes */}

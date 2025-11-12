@@ -24,7 +24,7 @@ const Navbar = () => {
     ? [
         { name: 'Home', path: '/', icon: Home },
         { name: 'Explore', path: '/explore', icon: Search },
-        { name: 'Profile', path: '/users/:userId', icon: User },
+        { name: 'Profile', path: '/profile', icon: User },
       ]
     : [
         { name: 'Home', path: '/', icon: Home },
@@ -210,7 +210,7 @@ const Navbar = () => {
               <>
                 {/* Profile Info */}
                 <Link
-                  to="/users/:userId"
+                  to="/profile"
                   onClick={closeMobileMenu}
                   className="flex items-center space-x-3 px-4 py-3 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors"
                 >

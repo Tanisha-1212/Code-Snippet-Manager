@@ -1,31 +1,38 @@
-// config/passport.js
 import passport from 'passport';
 import { Strategy as GoogleStrategy } from 'passport-google-oauth20';
 import User from '../models/User.js';
 import dotenv from 'dotenv';
 dotenv.config();
 
+// Smart callback URL detection based on environment
 const GOOGLE_CALLBACK = (() => {
-  if (process.env.GOOGLE_CALLBACK_URL) {
-    return process.env.GOOGLE_CALLBACK_URL;
+  // Development environment - use localhost
+  if (process.env.NODE_ENV === 'development') {
+    return 'http://localhost:5000/api/auth/google/callback';
   }
-  return 'http://localhost:5000/api/auth/google/callback';
+  
+  // Production environment - use env variable or fallback to production URL
+  return process.env.GOOGLE_CALLBACK_URL || 'https://code-snippet-manager-oowo.vercel.app/api/auth/google/callback';
 })();
 
+// Frontend URL based on environment
 const FRONTEND_REDIRECT = (() => {
-  if (process.env.FRONTEND_URL) {
-    return process.env.FRONTEND_URL;
+  // Development environment - use localhost
+  if (process.env.NODE_ENV === 'development') {
+    return 'http://localhost:5173';
   }
-  return 'http://localhost:5173';
+  
+  // Production environment - use env variable or fallback to production URL
+  return process.env.FRONTEND_URL || 'https://code-snippet-manager-inky.vercel.app';
 })();
 
 console.log('=== GOOGLE OAUTH CONFIG ===');
 console.log('NODE_ENV:', process.env.NODE_ENV);
 console.log('Callback URL:', GOOGLE_CALLBACK);
 console.log('Frontend URL:', FRONTEND_REDIRECT);
+console.log('Client ID:', process.env.GOOGLE_CLIENT_ID ? 'Set ✓' : 'Missing ✗');
+console.log('Client Secret:', process.env.GOOGLE_CLIENT_SECRET ? 'Set ✓' : 'Missing ✗');
 console.log('==========================');
-
-// NO serialization/deserialization needed for JWT
 
 passport.use(
   new GoogleStrategy(
@@ -33,7 +40,7 @@ passport.use(
       clientID: process.env.GOOGLE_CLIENT_ID,
       clientSecret: process.env.GOOGLE_CLIENT_SECRET,
       callbackURL: GOOGLE_CALLBACK,
-      proxy: true,
+      proxy: process.env.NODE_ENV === 'production', // Only true in production
     },
     async (accessToken, refreshToken, profile, done) => {
       try {

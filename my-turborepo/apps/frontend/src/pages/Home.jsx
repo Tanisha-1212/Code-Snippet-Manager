@@ -18,15 +18,16 @@ import {
 import SnippetCard from '../components/SnippetCard';
 
 const Dashboard = () => {
-  const { user, loading: userLoading } = useAuth(); // Get loading state from auth
+  const { user, loading: userLoading, refreshAuth } = useAuth(); // ✅ Add refreshAuth
   const { userSnippets, loading: snippetsLoading, fetchUserSnippets } = useSnippet();
   const [recentSnippets, setRecentSnippets] = useState([]);
-
 
   useEffect(() => {
     // Fetch user's snippets
     fetchUserSnippets();
   }, []);
+
+
 
   useEffect(() => {
     // Get 6 most recent snippets
@@ -273,7 +274,8 @@ const Dashboard = () => {
                         {collection.name}
                       </h3>
                       <p className="text-sm text-gray-500 dark:text-gray-400">
-                        {collection.snippets?.length || 0} snippets
+                        {/* ✅ Fixed: Use optional chaining and proper fallback */}
+                        {Array.isArray(collection.snippets) ? collection.snippets.length : 0} snippets
                       </p>
                     </div>
                   </div>
