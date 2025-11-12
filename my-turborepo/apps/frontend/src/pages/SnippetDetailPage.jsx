@@ -292,7 +292,7 @@ const SnippetDetailPage = () => {
             {/* Author and Date */}
             <div className="flex items-center justify-between flex-wrap gap-4">
               <Link 
-                to={`/user/${currentSnippet.user?._id}`}
+                to={`/users/${currentSnippet.user?._id}`}
                 className="flex items-center space-x-3 text-gray-600 dark:text-gray-400 hover:text-blue-600 dark:hover:text-blue-400 transition-colors"
               >
                 {currentSnippet.user?.profilePic ? (

@@ -1,7 +1,17 @@
 // context/UserContext.jsx
 import { createContext, useContext, useState } from 'react';
+import axiosInstance from '../utils/axiosInstance';
 
 const UserContext = createContext();
+
+// Custom hook to use the UserContext
+export const useUser = () => {
+  const context = useContext(UserContext);
+  if (!context) {
+    throw new Error('useUser must be used within a UserProvider');
+  }
+  return context;
+};
 
 export const UserProvider = ({ children }) => {
   const [profileUser, setProfileUser] = useState(null);
@@ -23,23 +33,19 @@ export const UserProvider = ({ children }) => {
     setLoading(true);
     setError(null);
     try {
-      const response = await fetch(`/api/users/${userId}`, {
-        credentials: 'include'
-      });
+      // Remove /api and credentials (already handled by axiosInstance)
+      const response = await axiosInstance.get(`/api/users/${userId}`);
 
-      if (!response.ok) {
-        throw new Error('Failed to fetch user profile');
-      }
-
-      const data = await response.json();
+      const data = response.data;
       setProfileUser(data);
       setUserSnippets(data.snippets || []);
       setUserStats(data.stats || {});
       return { success: true, data };
     } catch (err) {
-      setError(err.message);
+      const message = err.response?.data?.message || err.message;
+      setError(message);
       console.error('Error fetching user profile:', err);
-      return { success: false, error: err.message };
+      return { success: false, error: message };
     } finally {
       setLoading(false);
     }
@@ -50,24 +56,18 @@ export const UserProvider = ({ children }) => {
     setLoading(true);
     setError(null);
     try {
-      const response = await fetch(
-        `/api/users/${userId}/snippets?page=${page}&limit=${limit}`,
-        {
-          credentials: 'include'
-        }
+      const response = await axiosInstance.get(
+        `/users/${userId}/snippets?page=${page}&limit=${limit}`
       );
 
-      if (!response.ok) {
-        throw new Error('Failed to fetch user snippets');
-      }
-
-      const data = await response.json();
+      const data = response.data;
       setUserSnippets(data.snippets || []);
       return { success: true, data };
     } catch (err) {
-      setError(err.message);
+      const message = err.response?.data?.message || err.message;
+      setError(message);
       console.error('Error fetching user snippets:', err);
-      return { success: false, error: err.message };
+      return { success: false, error: message };
     } finally {
       setLoading(false);
     }
@@ -78,21 +78,16 @@ export const UserProvider = ({ children }) => {
     setLoading(true);
     setError(null);
     try {
-      const response = await fetch(`/api/users/${userId}/stats`, {
-        credentials: 'include'
-      });
+      const response = await axiosInstance.get(`/api/users/${userId}/stats`);
 
-      if (!response.ok) {
-        throw new Error('Failed to fetch user stats');
-      }
-
-      const data = await response.json();
+      const data = response.data;
       setUserStats(data);
       return { success: true, data };
     } catch (err) {
-      setError(err.message);
+      const message = err.response?.data?.message || err.message;
+      setError(message);
       console.error('Error fetching user stats:', err);
-      return { success: false, error: err.message };
+      return { success: false, error: message };
     } finally {
       setLoading(false);
     }
@@ -103,20 +98,15 @@ export const UserProvider = ({ children }) => {
     setLoading(true);
     setError(null);
     try {
-      const response = await fetch(`/api/users/search?q=${encodeURIComponent(query)}`, {
-        credentials: 'include'
-      });
+      const response = await axiosInstance.get(`/api/users/search?q=${encodeURIComponent(query)}`);
 
-      if (!response.ok) {
-        throw new Error('Failed to search users');
-      }
-
-      const data = await response.json();
+      const data = response.data;
       return { success: true, data: data.users };
     } catch (err) {
-      setError(err.message);
+      const message = err.response?.data?.message || err.message;
+      setError(message);
       console.error('Error searching users:', err);
-      return { success: false, error: err.message };
+      return { success: false, error: message };
     } finally {
       setLoading(false);
     }
@@ -154,11 +144,3 @@ export const UserProvider = ({ children }) => {
   return <UserContext.Provider value={value}>{children}</UserContext.Provider>;
 };
 
-// Custom hook to use the UserContext
-export const useUser = () => {
-  const context = useContext(UserContext);
-  if (!context) {
-    throw new Error('useUser must be used within a UserProvider');
-  }
-  return context;
-};

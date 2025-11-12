@@ -97,7 +97,7 @@ const SnippetCard = ({ snippet, onCopy }) => {
         {/* Author, Date, and Comments */}
         <div className="flex items-center justify-between text-sm mb-3">
           <Link 
-            to={`/user/${snippet.user?._id}`}
+            to={`/users/${snippet.user?._id}`}
             className="flex items-center space-x-2 text-gray-600 dark:text-gray-400 hover:text-blue-600 dark:hover:text-blue-400 transition-colors"
           >
             {snippet.user?.profilePic ? (

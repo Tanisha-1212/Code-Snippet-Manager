@@ -10,10 +10,13 @@ import { ExploreProvider } from './context/ExploreContext.jsx';
 import { CommentProvider } from './context/CommentsContext.jsx';
 import { CollectionProvider } from './context/CollectionContext.jsx';
 import { UserProvider } from './context/UserContext.jsx';
+import { GoogleOAuthProvider } from '@react-oauth/google';
+
 
 createRoot(document.getElementById('root')).render(
   <StrictMode>
     <BrowserRouter>
+    <GoogleOAuthProvider clientId="875829764579-1tgaqn8inscnpu6nqtgf0527dv094dvq.apps.googleusercontent.com">
       <UserProvider>
         <CollectionProvider>
           <CommentProvider>
@@ -29,6 +32,7 @@ createRoot(document.getElementById('root')).render(
           </CommentProvider>
         </CollectionProvider>
       </UserProvider>
+      </GoogleOAuthProvider>
     </BrowserRouter>
   </StrictMode>,
 );

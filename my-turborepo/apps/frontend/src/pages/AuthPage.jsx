@@ -1,8 +1,8 @@
-import { useState } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
+import { useState, useEffect } from 'react';
+import { Link, useNavigate, useSearchParams, useLocation } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
+import GoogleLoginButton from '../components/GoogleAuthButton';
 import { 
-  Code2, 
   Mail, 
   Lock, 
   User, 
@@ -14,7 +14,15 @@ import {
 } from 'lucide-react';
 
 const AuthPage = () => {
-  const [isLogin, setIsLogin] = useState(true);
+  const location = useLocation();
+  const [searchParams] = useSearchParams();
+  const navigate = useNavigate();
+  const { register, login } = useAuth();
+  
+  // Determine initial mode based on URL path
+  const isRegisterRoute = location.pathname === '/register';
+  const [isLogin, setIsLogin] = useState(!isRegisterRoute);
+  
   const [formData, setFormData] = useState({
     username: '',
     email: '',
@@ -27,80 +35,55 @@ const AuthPage = () => {
   const [loading, setLoading] = useState(false);
   const [fieldErrors, setFieldErrors] = useState({});
 
-  const { register, login } = useAuth();
-  const navigate = useNavigate();
-
-  // Sanitize error messages - convert backend errors to user-friendly messages
-  const sanitizeError = (backendError) => {
-    // Log the actual error to console for debugging
-    console.error('Backend error:', backendError);
-
-    // Map common backend errors to user-friendly messages
-    const errorMessage = backendError?.toLowerCase() || '';
-
-    // Authentication errors
-    if (errorMessage.includes('invalid') || errorMessage.includes('incorrect')) {
-      return isLogin 
-        ? 'Invalid email or password. Please try again.' 
-        : 'Invalid information provided. Please check your details.';
-    }
-
-    if (errorMessage.includes('not found') || errorMessage.includes('does not exist')) {
-      return 'No account found with this email address.';
-    }
-
-    if (errorMessage.includes('already exists') || errorMessage.includes('duplicate')) {
-      return 'An account with this email already exists. Please sign in instead.';
-    }
-
-    if (errorMessage.includes('username') && errorMessage.includes('taken')) {
-      return 'This username is already taken. Please choose another.';
-    }
-
-    // Network/Server errors
-    if (errorMessage.includes('network') || errorMessage.includes('failed to fetch')) {
-      return 'Network error. Please check your internet connection and try again.';
-    }
-
-    if (errorMessage.includes('timeout')) {
-      return 'Request timed out. Please try again.';
-    }
-
-    if (errorMessage.includes('500') || errorMessage.includes('server error')) {
-      return 'Our servers are experiencing issues. Please try again in a moment.';
-    }
-
-    // Validation errors
-    if (errorMessage.includes('validation') || errorMessage.includes('invalid format')) {
-      return 'Please check your information and try again.';
-    }
-
-    if (errorMessage.includes('required')) {
-      return 'Please fill in all required fields.';
-    }
-
-    // Token/Session errors
-    if (errorMessage.includes('token') || errorMessage.includes('expired') || errorMessage.includes('unauthorized')) {
-      return 'Your session has expired. Please try logging in again.';
-    }
-
-    // Generic fallback messages (don't expose internal details)
-    return isLogin 
-      ? 'Unable to sign in. Please check your credentials and try again.'
-      : 'Unable to create account. Please check your information and try again.';
-  };
-
-  // Switch between login and register
-  const toggleMode = () => {
-    setIsLogin(!isLogin);
-    setError('');
-    setFieldErrors({});
+  // Update mode when URL changes
+  useEffect(() => {
+    const shouldBeLogin = location.pathname !== '/register';
+    setIsLogin(shouldBeLogin);
+    // Clear form when switching modes
     setFormData({
       username: '',
       email: '',
       password: '',
       confirmPassword: ''
     });
+    setError('');
+    setFieldErrors({});
+  }, [location.pathname]);
+
+  // Handle Google OAuth callback
+  useEffect(() => {
+    const authError = searchParams.get('error');
+    if (authError === 'auth_failed') {
+      setError('Google authentication failed. Please try again.');
+    }
+  }, [searchParams, navigate]);
+
+  // Sanitize error messages
+  const sanitizeError = (backendError) => {
+    console.error('Backend error:', backendError);
+    const errorMessage = backendError?.toLowerCase() || '';
+
+    if (errorMessage.includes('invalid') || errorMessage.includes('incorrect')) {
+      return isLogin 
+        ? 'Invalid email or password. Please try again.' 
+        : 'Invalid information provided. Please check your details.';
+    }
+    if (errorMessage.includes('not found') || errorMessage.includes('does not exist')) {
+      return 'No account found with this email address.';
+    }
+    if (errorMessage.includes('already exists') || errorMessage.includes('duplicate')) {
+      return 'An account with this email already exists. Please sign in instead.';
+    }
+    if (errorMessage.includes('username') && errorMessage.includes('taken')) {
+      return 'This username is already taken. Please choose another.';
+    }
+    if (errorMessage.includes('network') || errorMessage.includes('failed to fetch')) {
+      return 'Network error. Please check your internet connection and try again.';
+    }
+
+    return isLogin 
+      ? 'Unable to sign in. Please check your credentials and try again.'
+      : 'Unable to create account. Please check your information and try again.';
   };
 
   // Real-time validation
@@ -138,7 +121,6 @@ const AuthPage = () => {
         } else {
           delete errors.password;
         }
-        // Also validate confirm password if it exists
         if (!isLogin && formData.confirmPassword && value !== formData.confirmPassword) {
           errors.confirmPassword = 'Passwords do not match';
         } else if (!isLogin && formData.confirmPassword) {
@@ -165,17 +147,14 @@ const AuthPage = () => {
     const { name, value } = e.target;
     setFormData(prev => ({ ...prev, [name]: value }));
     
-    // Validate field on change
     if (value) {
       validateField(name, value);
     } else {
-      // Clear error if field is empty
       const errors = { ...fieldErrors };
       delete errors[name];
       setFieldErrors(errors);
     }
     
-    // Clear general error when user starts typing
     if (error) setError('');
   };
 
@@ -184,7 +163,6 @@ const AuthPage = () => {
     
     const { username, email, password, confirmPassword } = formData;
     
-    // Validation
     if (isLogin) {
       if (!email || !password) {
         setError('Please fill in all fields');
@@ -220,17 +198,13 @@ const AuthPage = () => {
       }
       
       if (result.success) {
-        navigate('/');
+        navigate('/dashboard');
       } else {
-        // Sanitize the error before showing to user
         const userFriendlyError = sanitizeError(result.error);
         setError(userFriendlyError);
       }
     } catch (err) {
-      // Log the raw error for debugging
       console.error(`${isLogin ? 'Login' : 'Registration'} error:`, err);
-      
-      // Show sanitized error to user
       const userFriendlyError = sanitizeError(err.message || err.toString());
       setError(userFriendlyError);
     } finally {
@@ -249,8 +223,8 @@ const AuthPage = () => {
           </h2>
           <p className="mt-2 text-gray-600 dark:text-gray-400">
             {isLogin 
-              ? 'Sign in to access your study sets' 
-              : 'Join thousands of students learning smarter'
+              ? 'Sign in to access your snippets' 
+              : 'Join and start managing your code snippets'
             }
           </p>
         </div>
@@ -260,26 +234,26 @@ const AuthPage = () => {
           
           {/* Toggle Tabs */}
           <div className="grid grid-cols-2 gap-0 p-2 bg-gray-50 dark:bg-gray-900">
-            <button
-              onClick={() => !isLogin && toggleMode()}
-              className={`py-3 rounded-lg font-semibold transition-all ${
+            <Link
+              to="/login"
+              className={`py-3 rounded-lg font-semibold transition-all text-center ${
                 isLogin
                   ? 'bg-white dark:bg-gray-800 text-blue-600 dark:text-blue-400 shadow-sm'
                   : 'text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-200'
               }`}
             >
               Sign In
-            </button>
-            <button
-              onClick={() => isLogin && toggleMode()}
-              className={`py-3 rounded-lg font-semibold transition-all ${
+            </Link>
+            <Link
+              to="/register"
+              className={`py-3 rounded-lg font-semibold transition-all text-center ${
                 !isLogin
                   ? 'bg-white dark:bg-gray-800 text-blue-600 dark:text-blue-400 shadow-sm'
                   : 'text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-200'
               }`}
             >
               Sign Up
-            </button>
+            </Link>
           </div>
 
           {/* Form Container */}
@@ -292,6 +266,23 @@ const AuthPage = () => {
                 <p className="text-sm text-red-600 dark:text-red-400">{error}</p>
               </div>
             )}
+
+            {/* Google Login Button */}
+            <div className="mb-6">
+              <GoogleLoginButton />
+            </div>
+
+            {/* Divider */}
+            <div className="relative mb-6">
+              <div className="absolute inset-0 flex items-center">
+                <div className="w-full border-t border-gray-300 dark:border-gray-600"></div>
+              </div>
+              <div className="relative flex justify-center text-sm">
+                <span className="px-2 bg-white dark:bg-gray-800 text-gray-500 dark:text-gray-400">
+                  Or continue with email
+                </span>
+              </div>
+            </div>
 
             <form onSubmit={handleSubmit} className="space-y-5">
               

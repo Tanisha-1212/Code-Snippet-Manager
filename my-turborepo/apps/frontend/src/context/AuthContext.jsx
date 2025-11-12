@@ -24,12 +24,18 @@ export const AuthProvider = ({ children }) => {
 
   const checkAuth = async () => {
     try {
+      setLoading(true);
+      // Remove /api since it's already in baseURL
       const { data } = await axiosInstance.get("/api/auth/me");
       
+      console.log('✅ Auth check response:', data);
+
       if (data && data._id) {
+        console.log('✅ User authenticated:', data.email);
         setUser(data);
         setIsAuthenticated(true);
       } else {
+        console.log('❌ No user data received');
         setUser(null);
         setIsAuthenticated(false);
       }
@@ -44,6 +50,8 @@ export const AuthProvider = ({ children }) => {
 
   const register = async (username, email, password) => {
     try {
+      setLoading(true);
+      // Session is created automatically by backend
       const { data } = await axiosInstance.post("/api/auth/register", {
         username,
         email,
@@ -60,11 +68,15 @@ export const AuthProvider = ({ children }) => {
     } catch (error) {
       const message = error.response?.data?.message || "Registration failed";
       return { success: false, error: message };
+    } finally {
+      setLoading(false);
     }
   };
 
   const login = async (email, password) => {
     try {
+      setLoading(true);
+      // Session is created automatically by backend
       const { data } = await axiosInstance.post("/api/auth/login", {
         email,
         password,
@@ -80,12 +92,47 @@ export const AuthProvider = ({ children }) => {
     } catch (error) {
       const message = error.response?.data?.message || "Login failed";
       return { success: false, error: message };
+    } finally {
+      setLoading(false);
     }
+  };
+
+  // Google OAuth login - NO TOKEN NEEDED with sessions!
+  // This is called when user returns from Google OAuth
+  const handleGoogleCallback = async () => {
+    try {
+      setLoading(true);
+      
+      // Session cookie is already set by backend
+      // Just fetch user data
+      const { data } = await axiosInstance.get("/api/auth/me");
+      
+      if (data && data._id) {
+        setUser(data);
+        setIsAuthenticated(true);
+        return { success: true, user: data };
+      } else {
+        return { success: false, error: "Failed to fetch user data" };
+      }
+    } catch (error) {
+      const message = error.response?.data?.message || "Google authentication failed";
+      return { success: false, error: message };
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // Initiate Google OAuth flow
+  const initiateGoogleLogin = () => {
+    // Redirect to backend Google OAuth endpoint
+    // Remove /api since baseURL includes it
+    const backendUrl = import.meta.env.VITE_API_URL || 'http://localhost:5000';
+    window.location.href = `${backendUrl}/api/auth/google`;
   };
 
   const logout = async () => {
     try {
-      await axiosInstance.post("/api/auth/logout");
+      await axiosInstance.post("/auth/logout");
     } catch (error) {
       console.error("Logout error:", error);
     } finally {
@@ -96,118 +143,112 @@ export const AuthProvider = ({ children }) => {
   };
 
   const updateProfile = async (profileData) => {
-  setLoading(true);
-  setError(null);
-  try {
-    // Create FormData for file upload support
-    const formData = new FormData();
-    
-    // Append text fields if they exist
-    if (profileData.username) formData.append('username', profileData.username);
-    if (profileData.email) formData.append('email', profileData.email);
-    if (profileData.bio !== undefined) formData.append('bio', profileData.bio);
-    
-    // Append profile picture file if exists
-    // FIXED: Changed from 'profilePicture' to 'profilePic' to match backend
-    if (profileData.profilePicture instanceof File) {
-      formData.append('profilePic', profileData.profilePicture);
-    }
-
-    // DEBUG: Log what we're sending
-    console.log('=== SENDING TO BACKEND ===');
-    for (let [key, value] of formData.entries()) {
-      console.log(key, value);
-    }
-    console.log('========================');
-
-    const { data } = await axiosInstance.put('/api/auth/profile', formData, {
-      headers: {
-        // Remove Content-Type header - let axios/browser set it with proper boundary
-        // 'Content-Type': 'multipart/form-data'
+    setLoading(true);
+    setError(null);
+    try {
+      // Create FormData for file upload support
+      const formData = new FormData();
+      
+      // Append text fields if they exist
+      if (profileData.username) formData.append('username', profileData.username);
+      if (profileData.email) formData.append('email', profileData.email);
+      if (profileData.bio !== undefined) formData.append('bio', profileData.bio);
+      
+      // Append profile picture file if exists
+      if (profileData.profilePicture instanceof File) {
+        formData.append('profilePic', profileData.profilePicture);
       }
-    });
 
-    // Update user state with new data
-    if (data.success && data.user) {
-      setUser(data.user);
-      return { success: true, data: data.user };
+      const { data } = await axiosInstance.put('/api/auth/profile', formData, {
+        headers: {
+          'Content-Type': 'multipart/form-data'
+        }
+      });
+
+      // Update user state with new data
+      if (data.success && data.user) {
+        setUser(data.user);
+        return { success: true, data: data.user };
+      }
+
+      return { success: false, error: 'Failed to update profile' };
+    } catch (err) {
+      const message = err.response?.data?.message || 'Failed to update profile';
+      setError(message);
+      console.error('Error updating profile:', err);
+      return { success: false, error: message };
+    } finally {
+      setLoading(false);
     }
+  };
 
-    return { success: false, error: 'Failed to update profile' };
-  } catch (err) {
-    const message = err.response?.data?.message || 'Failed to update profile';
-    setError(message);
-    console.error('Error updating profile:', err);
-    return { success: false, error: message };
-  } finally {
-    setLoading(false);
-  }
-};
+  // Change password
+  const changePassword = async (currentPassword, newPassword, confirmPassword) => {
+    setLoading(true);
+    setError(null);
+    try {
+      const { data } = await axiosInstance.put('/api/auth/change-password', {
+        currentPassword,
+        newPassword,
+        confirmPassword
+      });
 
-// Change password
-const changePassword = async (currentPassword, newPassword, confirmPassword) => {
-  setLoading(true);
-  setError(null);
-  try {
-    const { data } = await axiosInstance.put('/api/auth/change-password', {
-      currentPassword,
-      newPassword,
-      confirmPassword
-    });
+      if (data.success) {
+        return { success: true, message: data.message };
+      }
 
-    if (data.success) {
-      return { success: true, message: data.message };
+      return { success: false, error: 'Failed to change password' };
+    } catch (err) {
+      const message = err.response?.data?.message || 'Failed to change password';
+      setError(message);
+      console.error('Error changing password:', err);
+      return { success: false, error: message };
+    } finally {
+      setLoading(false);
     }
+  };
 
-    return { success: false, error: 'Failed to change password' };
-  } catch (err) {
-    const message = err.response?.data?.message || 'Failed to change password';
-    setError(message);
-    console.error('Error changing password:', err);
-    return { success: false, error: message };
-  } finally {
-    setLoading(false);
-  }
-};
+  // Delete account
+  const deleteAccount = async (password, confirmation) => {
+    setLoading(true);
+    setError(null);
+    try {
+      const { data } = await axiosInstance.delete('/api/auth/account', {
+        data: { password, confirmation }
+      });
 
-// Delete account
-const deleteAccount = async (password, confirmation) => {
-  setLoading(true);
-  setError(null);
-  try {
-    const { data } = await axiosInstance.delete('/api/auth/account', {
-      data: { password, confirmation }
-    });
+      if (data.success) {
+        // Clear user state after successful deletion
+        setUser(null);
+        setIsAuthenticated(false);
+        return { success: true, message: data.message };
+      }
 
-    if (data.success) {
-      // Clear user state after successful deletion
-      setUser(null);
-      setIsAuthenticated(false);
-      return { success: true, message: data.message };
+      return { success: false, error: 'Failed to delete account' };
+    } catch (err) {
+      const message = err.response?.data?.message || 'Failed to delete account';
+      setError(message);
+      console.error('Error deleting account:', err);
+      return { success: false, error: message };
+    } finally {
+      setLoading(false);
     }
-
-    return { success: false, error: 'Failed to delete account' };
-  } catch (err) {
-    const message = err.response?.data?.message || 'Failed to delete account';
-    setError(message);
-    console.error('Error deleting account:', err);
-    return { success: false, error: message };
-  } finally {
-    setLoading(false);
-  }
-};
+  };
 
   const value = {
     user,
     loading,
     isAuthenticated,
+    error,
     register,
     login,
+    handleGoogleCallback,  // UPDATED: No token parameter needed
+    initiateGoogleLogin,   // Start Google OAuth flow
     logout,
     updateProfile,          
     changePassword,         
     deleteAccount, 
-    refreshAuth: checkAuth, // Renamed from getProfile for clarity
+    refreshAuth: checkAuth, // Can be used to manually refresh user data
     setError
   };
 
