@@ -14,6 +14,8 @@ import {
 import { protect } from "../middleware/authMiddleware.js";
 import upload, { handleMulterError } from '../middleware/upload.js';
 import passport from "../config/passport.js";
+import dotenv from 'dotenv'
+dotenv.config();
 
 router.post("/register", register);
 router.post("/login", login);
@@ -29,10 +31,11 @@ router.get('/google', googleAuth);
 
 router.get(
   '/google/callback',
-  passport.authenticate('google', { 
+  passport.authenticate('google', {
     failureRedirect: `${process.env.FRONTEND_URL || 'http://localhost:5173'}/login?error=auth_failed`
   }),
   googleAuthCallback
 );
+
 
 export default router;

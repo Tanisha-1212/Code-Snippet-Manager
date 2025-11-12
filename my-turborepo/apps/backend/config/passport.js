@@ -1,3 +1,4 @@
+// config/passport.js
 import passport from 'passport';
 import { Strategy as GoogleStrategy } from 'passport-google-oauth20';
 import User from '../models/User.js';
@@ -27,21 +28,17 @@ const FRONTEND_REDIRECT = process.env.PORT === '5000'
   : process.env.FRONTEND_URL;
 
 console.log('=== GOOGLE OAUTH CONFIG ===');
-console.log('Client ID:', process.env.GOOGLE_CLIENT_ID ? 'Set ✓' : 'Missing ✗');
-console.log('Client Secret:', process.env.GOOGLE_CLIENT_SECRET ? 'Set ✓' : 'Missing ✗');
 console.log('Callback URL:', GOOGLE_CALLBACK);
 console.log('Frontend URL:', FRONTEND_REDIRECT);
 console.log('==========================');
 
-// Passport serialization (REQUIRED for sessions)
+// Passport serialization
 passport.serializeUser((user, done) => {
-  console.log('Serializing user:', user._id);
   done(null, user._id);
 });
 
 passport.deserializeUser(async (id, done) => {
   try {
-    console.log('Deserializing user:', id);
     const user = await User.findById(id)
       .select('-password')
       .populate('snippets', 'title language tags createdAt')
@@ -49,7 +46,6 @@ passport.deserializeUser(async (id, done) => {
       .populate('favorites', 'title language tags');
     done(null, user);
   } catch (error) {
-    console.error('Deserialization error:', error);
     done(error, null);
   }
 });
@@ -60,7 +56,7 @@ passport.use(
       clientID: process.env.GOOGLE_CLIENT_ID,
       clientSecret: process.env.GOOGLE_CLIENT_SECRET,
       callbackURL: GOOGLE_CALLBACK,
-      proxy: true
+      proxy: true, // CRITICAL for Vercel
     },
     async (accessToken, refreshToken, profile, done) => {
       try {
@@ -70,7 +66,6 @@ passport.use(
 
         if (user) {
           console.log('✓ Existing user found:', user.email);
-          // Update Google ID if not set
           if (!user.googleId) {
             user.googleId = profile.id;
             await user.save();

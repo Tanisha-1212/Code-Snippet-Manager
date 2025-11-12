@@ -25,8 +25,16 @@ export const googleAuthCallback = async (req, res) => {
     console.log('Google auth successful for user:', req.user.email);
     console.log('Session ID:', req.sessionID);
 
-    // User is now in session, redirect to frontend
-    res.redirect(`${FRONTEND_REDIRECT}/auth/callback`);
+    // ⬇️ Force session to save before redirecting
+    req.session.save((err) => {
+      if (err) {
+        console.error('Session save error:', err);
+        return res.redirect(`${FRONTEND_REDIRECT}/auth/callback?error=session_failed`);
+      }
+
+      console.log('💾 Session saved successfully.');
+      res.redirect(`${FRONTEND_REDIRECT}/auth/callback`);
+    });
   } catch (error) {
     console.error('Google auth callback error:', error);
     res.redirect(`${FRONTEND_REDIRECT}/auth/callback?error=auth_failed`);

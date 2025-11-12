@@ -13,20 +13,32 @@ dotenv.config();
 const app = express();
 connectDB();
 
-app.use(cookieParser());
 
-// CORS configuration
 app.use(cors({
-  origin: [
-    'http://localhost:5173',
-    'http://localhost:5174',
-    'https://code-snippet-manager-inky.vercel.app',
-  ],
+  origin: function (origin, callback) {
+    const allowedOrigins = [
+      'http://localhost:5173',
+      'https://code-snippet-manager-inky.vercel.app'
+    ];
+
+    // Allow requests with no origin (like Postman)
+    if (!origin) return callback(null, true);
+
+    if (allowedOrigins.includes(origin)) {
+      callback(null, true);
+    } else {
+      callback(new Error('Not allowed by CORS'));
+    }
+  },
   credentials: true,
-  methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'OPTIONS'],
-  allowedHeaders: ['Content-Type', 'Authorization', 'Cookie'],
-  exposedHeaders: ['Set-Cookie'],
+  methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS', 'PATCH'],
+  allowedHeaders: ['Content-Type', 'Authorization'],
+  exposedHeaders: ['set-cookie'],
 }));
+
+
+// 2. Cookie parser - BEFORE session
+app.use(cookieParser());
 
 
 // Body parser
@@ -35,24 +47,40 @@ app.use(express.urlencoded({ extended: true }));
 
 // Session configuration - MUST come before passport
 app.use(session({
-  secret: process.env.SESSION_SECRET || 'your-secret-key-change-this',
+  secret: process.env.SESSION_SECRET,
   resave: false,
   saveUninitialized: false,
+  proxy: true, // CRITICAL for Vercel
   store: MongoStore.create({
     mongoUrl: process.env.MONGODB_URL,
-    touchAfter: 24 * 3600 // Lazy session update
+    touchAfter: 24 * 3600,
   }),
   cookie: {
-    secure: process.env.NODE_ENV === 'production',
+    secure: false, // MUST be true for HTTPS
     httpOnly: true,
     maxAge: 1000 * 60 * 60 * 24 * 7, // 7 days
-    sameSite: process.env.NODE_ENV === 'production' ? 'none' : 'lax',
-  }
+    sameSite: 'lax', // CRITICAL for cross-origin
+    path: '/',
+  },
+  name: 'connect.sid',
 }));
 
 // Passport middleware
 app.use(passport.initialize());
 app.use(passport.session());
+
+app.use((req, res, next) => {
+  console.log('Session object:', req.session);
+  next();
+});
+
+app.use((req, res, next) => {
+  console.log('📍 Request:', req.method, req.path);
+  console.log('🍪 Session ID:', req.sessionID);
+  console.log('👤 User:', req.user ? req.user.email : 'Not authenticated');
+  console.log('🍪 Cookies:', req.cookies);
+  next();
+});
 
 // Body parsers
 app.use((req, res, next) => {
